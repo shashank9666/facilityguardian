@@ -339,7 +339,7 @@ export function Checklists() {
     setSubmitted(false);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!activeTemplate) return;
     // Check required fields
     const missing = activeTemplate.fields.filter(f => f.required && !fieldValues[f.id]);
@@ -348,28 +348,38 @@ export function Checklists() {
       return;
     }
     setSubmitting(true);
-    setTimeout(() => {
-      const fields = activeTemplate.fields.map(f => ({ ...f, value: fieldValues[f.id] ?? "" }));
+    try {
+      const fields = activeTemplate.fields.map(f => ({
+        id: f.id,
+        label: f.label,
+        type: f.type,
+        value: fieldValues[f.id] ?? "",
+        required: f.required,
+        unit: f.unit,
+        options: f.options,
+      }));
+
       const issueCount = fields.filter(f =>
         f.value && ["Abnormal","Dirty","Damaged","Critical","Fault","Blocked","Missing","Tripped","Not Working","Faulty","Issue"].includes(f.value)
       ).length;
 
-      const sub: ChecklistSubmission = {
-        id: uid(),
-        templateId: activeTemplate.id,
+      await submitChecklist({
+        templateId:   activeTemplate.id,
         templateName: activeTemplate.name,
-        category: activeTemplate.category,
-        submittedBy: state.currentUser.name,
-        submittedAt: new Date().toISOString(),
+        category:     activeTemplate.category,
+        submittedBy:  state.currentUser.name,
         fields,
-        notes: fieldValues["remarks"] ?? "",
+        notes:        fieldValues["remarks"] ?? "",
         issueCount,
-      };
-      submitChecklist(sub);
-      setSubmitting(false);
+      });
+
       setSubmitted(true);
       toast(`${activeTemplate.name} submitted successfully`, "success");
-    }, 700);
+    } catch (err) {
+      toast((err as Error).message ?? "Failed to submit","error");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // Count today's submissions

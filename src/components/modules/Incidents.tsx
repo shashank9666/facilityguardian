@@ -22,6 +22,7 @@ export function Incidents({ search }: { search: string }) {
   const { state, addIncident, updateIncident, toast } = useApp();
   const { canCreate, canDeleteInc } = useRole();
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterSeverity, setFilterSeverity] = useState("all");
   const [addOpen, setAddOpen] = useState(false);
   const [detailInc, setDetailInc] = useState<Incident | null>(null);
   const [form, setForm] = useState<Partial<Incident>>({});
@@ -30,8 +31,9 @@ export function Incidents({ search }: { search: string }) {
     const q = search.toLowerCase();
     const matchQ = !q || i.title.toLowerCase().includes(q) || i.incidentNumber.toLowerCase().includes(q);
     const matchS = filterStatus === "all" || i.status === filterStatus;
-    return matchQ && matchS;
-  }), [state.incidents, search, filterStatus]);
+    const matchV = filterSeverity === "all" || i.severity === filterSeverity;
+    return matchQ && matchS && matchV;
+  }), [state.incidents, search, filterStatus, filterSeverity]);
 
   async function handleAdd() {
     if (!form.title?.trim()) return;
@@ -78,9 +80,9 @@ export function Incidents({ search }: { search: string }) {
       <div className="flex items-center gap-3">
         <div className="flex gap-1.5">
           {["all","critical","high","medium","low"].map(s => (
-            <button key={s} onClick={()=>setFilterStatus(s)}
+            <button key={s} onClick={()=>setFilterSeverity(s)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium border capitalize transition-all ${
-                filterStatus===s ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-500 border-slate-200 hover:border-blue-300"
+                filterSeverity===s ? "bg-red-600 text-white border-red-600" : "bg-white text-slate-500 border-slate-200 hover:border-red-300"
               }`}>{s}</button>
           ))}
         </div>

@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { cn, uid, daysUntil, sanitize } from "@/lib/utils";
+import { cn, uid, daysUntil, sanitize, fmtDate } from "@/lib/utils";
 import type { FMDocument, DocCategory, DocStatus } from "@/types";
 import {
   FileText, FileBadge, FileCheck, ScrollText, BookOpen,
@@ -84,13 +84,12 @@ export function Documents({ search }: { search: string }) {
     setModalOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.title?.trim()) return;
     setSaving(true);
-    setTimeout(() => {
+    try {
       const docNum = form.docNumber || `${form.category?.slice(0,3)?.toUpperCase() ?? "DOC"}-${String(documents.length + 1).padStart(3, "0")}`;
-      const doc: FMDocument = {
-        id:          editing?.id ?? uid(),
+      const payload: Partial<FMDocument> = {
         docNumber:   sanitize(docNum),
         title:       sanitize(form.title!),
         category:    form.category as DocCategory || "SOP",
@@ -103,19 +102,21 @@ export function Documents({ search }: { search: string }) {
           ? (form.tags as string).split(",").map((t: string) => t.trim()).filter(Boolean)
           : form.tags ?? [],
         description: sanitize(form.description || ""),
-        createdAt:   editing?.createdAt ?? new Date().toISOString(),
-        updatedAt:   new Date().toISOString(),
       };
 
       if (editing) {
-        updateDocument(doc);
+        await updateDocument(editing.id, payload);
         toast("Document updated", "success");
       } else {
-        addDocument(doc);
+        await addDocument(payload);
         toast("Document added", "success");
       }
-      setModalOpen(false); setForm({}); setSaving(false);
-    }, 400);
+      setModalOpen(false); setForm({});
+    } catch (err) {
+      toast((err as Error).message ?? "Failed to save document", "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Stats
@@ -241,7 +242,7 @@ export function Documents({ search }: { search: string }) {
                   <td className="px-4 py-3.5">
                     {d.expiryDate ? (
                       <div>
-                        <div className="text-[12px] text-slate-600">{d.expiryDate}</div>
+                        <div className="text-[12px] text-slate-600">{fmtDate(d.expiryDate)}</div>
                         {expDays !== null && (
                           <div className={cn("text-[10px] font-medium mt-0.5",
                             expDays < 0 ? "text-red-500" : expDays <= 30 ? "text-amber-500" : "text-emerald-500")}>
@@ -255,7 +256,7 @@ export function Documents({ search }: { search: string }) {
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 text-[12px]">
                     <div>{d.uploadedBy}</div>
-                    <div className="text-[10px] text-slate-400">{d.uploadedAt}</div>
+                    <div className="text-[10px] text-slate-400">{fmtDate(d.uploadedAt)}</div>
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

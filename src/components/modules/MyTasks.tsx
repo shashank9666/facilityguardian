@@ -60,7 +60,7 @@ function buildWeekData(wos: { status: WOStatus; completedAt?: string; createdAt:
 }
 
 export function MyTasks() {
-  const { state } = useApp();
+  const { state, navigateTo } = useApp();
   const { currentUser, workOrders, preventiveMaintenance, checklistSubmissions } = state;
 
   const [tab, setTab] = useState<TabKey>("all");
@@ -102,9 +102,9 @@ export function MyTasks() {
   const weekData = useMemo(() => buildWeekData(myWOs), [myWOs]);
 
   const QUICK_ACTIONS = [
-    { label: "Update DG Log",        color: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-100",   icon: <Zap size={14}/> },
-    { label: "Submit Washroom HK",   color: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-100", icon: <ClipboardCheck size={14}/> },
-    { label: "Report Faulty Asset",  color: "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-100", icon: <AlertTriangle size={14}/> },
+    { label: "Update DG Log",        color: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-100",   icon: <Zap size={14}/>, action: () => navigateTo("meter-readings") },
+    { label: "Submit Washroom HK",   color: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-100", icon: <ClipboardCheck size={14}/>, action: () => navigateTo("checklists") },
+    { label: "Report Faulty Asset",  color: "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-100", icon: <AlertTriangle size={14}/>, action: () => navigateTo("incidents") },
   ];
 
   return (
@@ -185,7 +185,7 @@ export function MyTasks() {
           <div className="text-[14px] font-bold text-slate-800 mb-4">Quick Actions</div>
           <div className="space-y-2.5">
             {QUICK_ACTIONS.map(a => (
-              <button key={a.label}
+              <button key={a.label} onClick={a.action}
                 className={cn(
                   "w-full flex items-center justify-between px-4 py-3 rounded-xl text-[13px] font-semibold border transition-all",
                   a.color

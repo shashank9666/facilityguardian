@@ -173,6 +173,61 @@ export async function apiGetMaintenance() {
   return res.data.map(norm);
 }
 
+// ── AMC Contracts ─────────────────────────────────────────────────────────────
+export async function apiGetAMC() {
+  const res = await request<{ data: unknown[] }>("/amc");
+  return res.data.map(norm);
+}
+
+export async function apiCreateAMC(body: Record<string, unknown>) {
+  const res = await request<{ data: unknown }>("/amc", { method: "POST", body: JSON.stringify(body) });
+  return norm(res.data);
+}
+
+export async function apiUpdateAMC(id: string, body: Record<string, unknown>) {
+  const res = await request<{ data: unknown }>(`/amc/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  return norm(res.data);
+}
+
+// ── Documents ─────────────────────────────────────────────────────────────────
+export async function apiGetDocuments() {
+  const res = await request<{ data: unknown[] }>("/documents");
+  return res.data.map(norm);
+}
+
+export async function apiCreateDocument(body: Record<string, unknown>) {
+  const res = await request<{ data: unknown }>("/documents", { method: "POST", body: JSON.stringify(body) });
+  return norm(res.data);
+}
+
+export async function apiUpdateDocument(id: string, body: Record<string, unknown>) {
+  const res = await request<{ data: unknown }>(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+  return norm(res.data);
+}
+
+// ── Checklists ────────────────────────────────────────────────────────────────
+export async function apiGetChecklists(params?: Record<string, string>) {
+  const qs = params ? "?" + new URLSearchParams(params) : "";
+  const res = await request<{ data: unknown[] }>(`/checklists${qs}`);
+  return res.data.map(norm);
+}
+
+export async function apiSubmitChecklist(body: Record<string, unknown>) {
+  const res = await request<{ data: unknown }>("/checklists", { method: "POST", body: JSON.stringify(body) });
+  return norm(res.data);
+}
+
+// ── Meter Readings ────────────────────────────────────────────────────────────
+export async function apiGetMeterReadings() {
+  const res = await request<{ data: unknown[] }>("/meter-readings");
+  return res.data.map(norm);
+}
+
+export async function apiSubmitMeterReading(body: Record<string, unknown>) {
+  const res = await request<{ data: unknown }>("/meter-readings", { method: "POST", body: JSON.stringify(body) });
+  return norm(res.data);
+}
+
 // ── Users (admin) ─────────────────────────────────────────────────────────────
 export async function apiGetUsers() {
   const res = await request<{ data: unknown[] }>("/auth/users");

@@ -29,7 +29,6 @@ export function Modal({ open, onClose, title, children, footer, size = "md" }: M
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       aria-modal="true" role="dialog"
     >
       <div className={cn(

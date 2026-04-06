@@ -49,8 +49,7 @@ function FullPageSpinner() {
 
 // ─── Main App (inside AppProvider context) ────────────────────────────────────
 function FMNexusApp() {
-  const { state, loading, logout } = useApp();
-  const [page, setPage]             = useState<NavPage>("dashboard");
+  const { state, loading, logout, activePage, navigateTo } = useApp();
   const [search, setSearch]         = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [mounted, setMounted]       = useState(false);
@@ -58,7 +57,7 @@ function FMNexusApp() {
   useEffect(() => { setMounted(true); }, []);
 
   const handleSearch   = useCallback((v: string)  => setSearch(v), []);
-  const handleNavigate = useCallback((p: NavPage)  => { setPage(p); setSearch(""); }, []);
+  const handleNavigate = useCallback((p: NavPage)  => { navigateTo(p); setSearch(""); }, []);
   const handleRefresh  = useCallback(() => setRefreshKey(k => k + 1), []);
 
   // Solve hydration mismatch: return null or a simple shell until mounted
@@ -74,11 +73,11 @@ function FMNexusApp() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
-      <Sidebar activePage={page} onNavigate={handleNavigate} />
+      <Sidebar activePage={activePage} onNavigate={handleNavigate} />
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar
-          activePage={page}
+          activePage={activePage}
           search={search}
           onSearch={handleSearch}
           onRefresh={handleRefresh}
@@ -86,23 +85,23 @@ function FMNexusApp() {
         />
 
         <main className="flex-1 overflow-y-auto p-6">
-          <div key={`${page}-${refreshKey}`} className="animate-slide-up">
-            {page === "dashboard"   && <Dashboard />}
-            {page === "assets"      && <Assets search={search} />}
-            {page === "work-orders" && <WorkOrders search={search} />}
-            {page === "maintenance" && <Maintenance search={search} />}
-            {page === "vendors"     && <Vendors search={search} />}
-            {page === "spaces"      && <Spaces search={search} />}
-            {page === "incidents"   && <Incidents search={search} />}
-            {page === "inventory"   && <Inventory search={search} />}
-            {page === "reports"     && <Reports />}
-            {page === "settings"    && <Settings />}
-            {page === "my-tasks"    && <MyTasks />}
-            {page === "checklists"  && <Checklists />}
-            {page === "meter-readings" && <MeterReadings />}
+          <div key={`${activePage}-${refreshKey}`} className="animate-slide-up">
+            {activePage === "dashboard"   && <Dashboard />}
+            {activePage === "assets"      && <Assets search={search} />}
+            {activePage === "work-orders" && <WorkOrders search={search} />}
+            {activePage === "maintenance" && <Maintenance search={search} />}
+            {activePage === "vendors"     && <Vendors search={search} />}
+            {activePage === "spaces"      && <Spaces search={search} />}
+            {activePage === "incidents"   && <Incidents search={search} />}
+            {activePage === "inventory"   && <Inventory search={search} />}
+            {activePage === "reports"     && <Reports />}
+            {activePage === "settings"    && <Settings />}
+            {activePage === "my-tasks"    && <MyTasks />}
+            {activePage === "checklists"  && <Checklists />}
+            {activePage === "meter-readings" && <MeterReadings />}
 
-            {page === "amc"         && <AMC search={search} />}
-            {page === "documents"   && <Documents search={search} />}
+            {activePage === "amc"         && <AMC search={search} />}
+            {activePage === "documents"   && <Documents search={search} />}
 
           </div>
         </main>

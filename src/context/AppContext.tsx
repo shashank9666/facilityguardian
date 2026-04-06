@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import type {
   AppState, Toast, Asset, WorkOrder, InventoryItem, Incident, Vendor, User,
-  ChecklistSubmission, MeterReading, AMCContract, FMDocument,
+  ChecklistSubmission, MeterReading, AMCContract, FMDocument, NavPage,
 } from "@/types";
 import { uid } from "@/lib/utils";
 import {
@@ -22,6 +22,10 @@ import {
   apiGetInventory, apiCreateInventoryItem, apiUpdateInventoryItem, apiRestockItem,
   apiGetVendors, apiCreateVendor, apiUpdateVendor,
   apiGetSpaces, apiGetMaintenance,
+  apiGetAMC, apiCreateAMC, apiUpdateAMC,
+  apiGetDocuments, apiCreateDocument, apiUpdateDocument,
+  apiGetChecklists, apiSubmitChecklist,
+  apiGetMeterReadings, apiSubmitMeterReading,
 } from "@/lib/api";
 
 // ─── Seed data for frontend-only features ─────────────────────────────────────
@@ -167,8 +171,8 @@ const BLANK_STATE: AppState = {
   vendors: [], spaces: [], incidents: [], inventory: [], toasts: [],
   checklistSubmissions: [],
   meterReadings: [],
-  amcContracts: SEED_AMC,
-  documents: SEED_DOCS,
+  amcContracts: [],
+  documents: [],
 };
 
 // ─── Actions ───────────────────────────────────────────────────────────────────
@@ -267,12 +271,14 @@ interface AppContextValue {
   updateInventoryItem: (id: string, body: Record<string, unknown>) => Promise<void>;
   restockInventoryItem:(id: string, qty: number) => Promise<void>;
   // Frontend-only CRUD
-  submitChecklist:   (sub: ChecklistSubmission) => void;
-  submitMeterReading:(reading: MeterReading) => void;
-  addAMC:    (contract: AMCContract) => void;
-  updateAMC: (contract: AMCContract) => void;
-  addDocument:    (doc: FMDocument) => void;
-  updateDocument: (doc: FMDocument) => void;
+  submitChecklist:   (body: Record<string, unknown>) => Promise<void>;
+  submitMeterReading:(body: Record<string, unknown>) => Promise<void>;
+  addAMC:    (body: Record<string, unknown>) => Promise<void>;
+  updateAMC: (id: string, body: Record<string, unknown>) => Promise<void>;
+  addDocument:    (body: Record<string, unknown>) => Promise<void>;
+  updateDocument: (id: string, body: Record<string, unknown>) => Promise<void>;
+  activePage: NavPage;
+  navigateTo: (page: NavPage) => void;
   refreshAll: () => Promise<void>;
 }
 
@@ -291,10 +297,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // fetch everything from API and populate state
+  const [activePage, setActivePage] = useState<NavPage>("dashboard");
+
+  const navigateTo = useCallback((p: NavPage) => {
+    setActivePage(p);
+  }, []);
+
   const refreshAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [assets, workOrders, vendors, incidents, inventory, spaces, preventiveMaintenance] =
+      const [assets, workOrders, vendors, incidents, inventory, spaces, preventiveMaintenance, amc, docs, check, meter] =
         await Promise.all([
           apiGetAssets(),
           apiGetWorkOrders(),
@@ -303,9 +315,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           apiGetInventory(),
           apiGetSpaces(),
           apiGetMaintenance(),
+          apiGetAMC(),
+          apiGetDocuments(),
+          apiGetChecklists(),
+          apiGetMeterReadings(),
         ]);
       dispatch({ type: "SET_ALL_DATA", payload: {
         assets, workOrders, vendors, incidents, inventory, spaces, preventiveMaintenance,
+        amcContracts: amc, documents: docs, checklistSubmissions: check, meterReadings: meter,
       }});
     } catch (err) {
       toast((err as Error).message ?? "Failed to load data", "error");
@@ -413,27 +430,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Frontend-only helpers ─────────────────────────────────────────────────
-  const submitChecklist = useCallback((sub: ChecklistSubmission) => {
+  const submitChecklist = useCallback(async (body: Record<string, unknown>) => {
+    const sub = await apiSubmitChecklist(body) as ChecklistSubmission;
     dispatch({ type: "ADD_CHECKLIST", payload: sub });
   }, []);
 
-  const submitMeterReading = useCallback((reading: MeterReading) => {
+  const submitMeterReading = useCallback(async (body: Record<string, unknown>) => {
+    const reading = await apiSubmitMeterReading(body) as MeterReading;
     dispatch({ type: "ADD_METER_READING", payload: reading });
   }, []);
 
-  const addAMC = useCallback((contract: AMCContract) => {
-    dispatch({ type: "ADD_AMC", payload: contract });
+  const addAMC = useCallback(async (body: Record<string, unknown>) => {
+    const amc = await apiCreateAMC(body) as AMCContract;
+    dispatch({ type: "ADD_AMC", payload: amc });
   }, []);
 
-  const updateAMC = useCallback((contract: AMCContract) => {
-    dispatch({ type: "UPDATE_AMC", payload: contract });
+  const updateAMC = useCallback(async (id: string, body: Record<string, unknown>) => {
+    const amc = await apiUpdateAMC(id, body) as AMCContract;
+    dispatch({ type: "UPDATE_AMC", payload: amc });
   }, []);
 
-  const addDocument = useCallback((doc: FMDocument) => {
+  const addDocument = useCallback(async (body: Record<string, unknown>) => {
+    const doc = await apiCreateDocument(body) as FMDocument;
     dispatch({ type: "ADD_DOCUMENT", payload: doc });
   }, []);
 
-  const updateDocument = useCallback((doc: FMDocument) => {
+  const updateDocument = useCallback(async (id: string, body: Record<string, unknown>) => {
+    const doc = await apiUpdateDocument(id, body) as FMDocument;
     dispatch({ type: "UPDATE_DOCUMENT", payload: doc });
   }, []);
 
@@ -449,6 +472,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       submitChecklist, submitMeterReading,
       addAMC, updateAMC,
       addDocument, updateDocument,
+      activePage, navigateTo,
       refreshAll,
     }}>
       {children}
