@@ -70,7 +70,7 @@ export function Documents({ search }: { search: string }) {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return documents.filter(d => {
-      const matchQ = !q || d.title.toLowerCase().includes(q) || d.docNumber.toLowerCase().includes(q) || d.tags.some(t => t.toLowerCase().includes(q));
+      const matchQ = !q || d.title.toLowerCase().includes(q) || d.docNumber.toLowerCase().includes(q) || (d.tags ?? []).some(t => t.toLowerCase().includes(q));
       const matchC = catFilter === "all" || d.category === catFilter;
       const matchS = statusFilter === "all" || d.status === statusFilter;
       return matchQ && matchC && matchS;
@@ -223,9 +223,9 @@ export function Documents({ search }: { search: string }) {
                   <td className="px-4 py-3.5">
                     <div className="font-semibold text-slate-800 leading-snug">{d.title}</div>
                     {d.description && <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[280px]">{d.description}</div>}
-                    {d.tags.length > 0 && (
+                    {(d.tags ?? []).length > 0 && (
                       <div className="flex gap-1 mt-1 flex-wrap">
-                        {d.tags.slice(0,3).map(tag => (
+                        {(d.tags ?? []).slice(0,3).map(tag => (
                           <span key={tag} className="flex items-center gap-0.5 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
                             <Tag size={8}/>{tag}
                           </span>

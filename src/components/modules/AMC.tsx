@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { cn, uid, fmtDate, daysUntil, sanitize } from "@/lib/utils";
+import { cn, fmtDate, daysUntil, sanitize } from "@/lib/utils";
 import type { AMCContract, AMCStatus } from "@/types";
 import {
   FileText, Plus, Pencil, Phone, Calendar, AlertTriangle,
@@ -81,12 +81,11 @@ export function AMC({ search }: { search: string }) {
     setModalOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.title?.trim() || !form.vendorName?.trim()) return;
     setSaving(true);
-    setTimeout(() => {
-      const contract: AMCContract = {
-        id:               editing?.id ?? uid(),
+    try {
+      const payload = {
         contractNumber:   sanitize(form.contractNumber || `AMC/${(contracts.length + 1).toString().padStart(3,"0")}`),
         title:            sanitize(form.title!),
         vendorName:       sanitize(form.vendorName!),
@@ -100,19 +99,21 @@ export function AMC({ search }: { search: string }) {
         contactPerson:    sanitize(form.contactPerson || ""),
         contactPhone:     sanitize(form.contactPhone || ""),
         notes:            sanitize(form.notes || ""),
-        createdAt:        editing?.createdAt ?? new Date().toISOString(),
-        updatedAt:        new Date().toISOString(),
       };
 
       if (editing) {
-        updateAMC(contract);
+        await updateAMC(editing.id, payload);
         toast("Contract updated", "success");
       } else {
-        addAMC(contract);
+        await addAMC(payload);
         toast("Contract added", "success");
       }
-      setModalOpen(false); setForm({}); setSaving(false);
-    }, 400);
+      setModalOpen(false); setForm({});
+    } catch (err) {
+      toast((err as Error).message ?? "Failed to save contract", "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Stats

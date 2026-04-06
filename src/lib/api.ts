@@ -38,9 +38,14 @@ function norm(doc: any): any {
   if (!doc || typeof doc !== "object") return doc;
   if (Array.isArray(doc)) return doc.map(norm);
   const { _id, __v, ...rest } = doc;
-  const out: Record<string, unknown> = { ...((_id !== undefined) ? { id: String(_id) } : {}), ...rest };
+  const out: Record<string, unknown> = { ...(_id !== undefined ? { id: String(_id) } : {}), ...rest };
   for (const key of Object.keys(out)) {
     out[key] = norm(out[key] as unknown);
+  }
+  // Defensive defaults: ensure known array fields are never undefined
+  const ARRAY_FIELDS = ["tags", "checklist", "auditLog", "timeline", "fields", "options", "attachments", "images"];
+  for (const f of ARRAY_FIELDS) {
+    if (out[f] === undefined || out[f] === null) out[f] = [];
   }
   return out;
 }
