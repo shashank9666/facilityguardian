@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState,useEffect, useCallback } from "react";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { Sidebar }       from "@/components/layout/Sidebar";
 import { TopBar }        from "@/components/layout/TopBar";
@@ -47,13 +47,20 @@ function FMNexusApp() {
   const [page, setPage]             = useState<NavPage>("dashboard");
   const [search, setSearch]         = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [mounted, setMounted]       = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const handleSearch   = useCallback((v: string)  => setSearch(v), []);
   const handleNavigate = useCallback((p: NavPage)  => { setPage(p); setSearch(""); }, []);
   const handleRefresh  = useCallback(() => setRefreshKey(k => k + 1), []);
 
+  // Solve hydration mismatch: return null or a simple shell until mounted
+  if (!mounted) return null;
+
   // Show spinner while loading initial data (token present but data not yet fetched)
   if (loading) return <FullPageSpinner />;
+
 
   // Show login if no user loaded
   if (!state.currentUser.id && !getToken()) return <LoginScreen />;
