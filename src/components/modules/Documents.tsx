@@ -103,7 +103,10 @@ export function Documents({ search }: { search: string }) {
           ? (form.tags as string).split(",").map((t: string) => t.trim()).filter(Boolean)
           : form.tags ?? [],
         description: sanitize(form.description || ""),
+        createdAt:   editing?.createdAt ?? new Date().toISOString(),
+        updatedAt:   new Date().toISOString(),
       };
+
       if (editing) {
         updateDocument(doc);
         toast("Document updated", "success");
@@ -341,8 +344,8 @@ export function Documents({ search }: { search: string }) {
           <div className="col-span-2">
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Tags (comma separated)</label>
             <input
-              value={Array.isArray(form.tags) ? (form.tags as string[]).join(", ") : (form.tags as string || "")}
-              onChange={e=>setForm(p=>({...p,tags:e.target.value}))}
+              value={Array.isArray(form.tags) ? form.tags.join(", ") : (form.tags as unknown as string ?? "")}
+              onChange={e=>setForm(p=>({...p,tags:e.target.value as unknown as string[]}))}
               placeholder="e.g. Fire, Safety, Emergency"
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"/>
           </div>

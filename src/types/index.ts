@@ -26,6 +26,7 @@ export interface User {
   avatar?: string;
   active: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Asset {
@@ -48,7 +49,10 @@ export interface Asset {
   assignedTo?: string;
   notes: string;
   tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 export interface WorkOrder {
   id: string;
@@ -65,6 +69,7 @@ export interface WorkOrder {
   assignedTeam?: string;
   requestedBy: string;
   createdAt: string;
+  updatedAt: string;
   dueDate: string;
   completedAt?: string;
   estimatedHours: number;
@@ -87,7 +92,10 @@ export interface PreventiveMaintenance {
   estimatedMinutes: number;
   checklist: ChecklistItem[];
   status: PMStatus;
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 export interface ChecklistItem {
   id: string;
@@ -112,7 +120,10 @@ export interface Vendor {
   totalOrders: number;
   completedOnTime: number;
   notes: string;
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 export interface Space {
   id: string;
@@ -127,7 +138,10 @@ export interface Space {
   assignedTo?: string;
   lastInspection: string;
   area: number; // sq ft
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 export interface Incident {
   id: string;
@@ -143,7 +157,10 @@ export interface Incident {
   resolvedAt?: string;
   category: string;
   timeline: AuditEntry[];
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 export interface InventoryItem {
   id: string;
@@ -160,7 +177,10 @@ export interface InventoryItem {
   supplierName?: string;
   unitCost: number;
   lastRestocked: string;
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 export interface AuditEntry {
   id: string;
@@ -266,7 +286,10 @@ export interface AMCContract {
   contactPerson: string;
   contactPhone: string;
   notes: string;
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 // ─── Document Types ────────────────────────────────────────────────────────────
 
@@ -285,7 +308,10 @@ export interface FMDocument {
   uploadedAt: string;
   tags: string[];
   description: string;
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 export type NavPage =
   | "dashboard"

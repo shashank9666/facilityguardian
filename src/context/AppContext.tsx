@@ -33,7 +33,9 @@ const SEED_AMC: AMCContract[] = [
     startDate: "2024-04-01", endDate: "2026-03-31", value: 180000,
     status: "active", renewalAlertDays: 60,
     contactPerson: "Rajesh Kumar", contactPhone: "+91 98765 43210", notes: "",
+    createdAt: "2024-04-01T00:00:00Z", updatedAt: "2024-04-01T00:00:00Z",
   },
+
   {
     id: "amc-002", contractNumber: "AMC/LIFT/2024-02", title: "Elevator Maintenance Contract",
     vendorName: "Schindler India Pvt. Ltd.", category: "Vertical Transport",
@@ -41,7 +43,9 @@ const SEED_AMC: AMCContract[] = [
     startDate: "2024-06-01", endDate: "2026-05-31", value: 240000,
     status: "active", renewalAlertDays: 60,
     contactPerson: "Suresh Nair", contactPhone: "+91 99887 76655", notes: "",
+    createdAt: "2024-06-01T00:00:00Z", updatedAt: "2024-06-01T00:00:00Z",
   },
+
   {
     id: "amc-003", contractNumber: "AMC/HVAC/2024-03", title: "HVAC & Chiller Maintenance",
     vendorName: "Blue Star Ltd.", category: "HVAC",
@@ -49,7 +53,9 @@ const SEED_AMC: AMCContract[] = [
     startDate: "2025-01-01", endDate: "2026-05-15", value: 320000,
     status: "expiring_soon", renewalAlertDays: 45,
     contactPerson: "Priya Mehta", contactPhone: "+91 90123 45678", notes: "Renewal quote awaited",
+    createdAt: "2025-01-01T00:00:00Z", updatedAt: "2025-01-01T00:00:00Z",
   },
+
   {
     id: "amc-004", contractNumber: "AMC/FIRE/2024-04", title: "Fire Safety Systems AMC",
     vendorName: "Minimax India Pvt. Ltd.", category: "Fire Safety",
@@ -57,7 +63,9 @@ const SEED_AMC: AMCContract[] = [
     startDate: "2024-07-01", endDate: "2026-06-30", value: 95000,
     status: "active", renewalAlertDays: 60,
     contactPerson: "Anil Desai", contactPhone: "+91 91234 56789", notes: "",
+    createdAt: "2024-07-01T00:00:00Z", updatedAt: "2024-07-01T00:00:00Z",
   },
+
   {
     id: "amc-005", contractNumber: "AMC/BMS/2023-05", title: "BMS & IBMS Support Contract",
     vendorName: "Honeywell Automation India", category: "IT Infrastructure",
@@ -65,7 +73,9 @@ const SEED_AMC: AMCContract[] = [
     startDate: "2023-08-01", endDate: "2025-07-31", value: 150000,
     status: "expired", renewalAlertDays: 30,
     contactPerson: "Vikram Singh", contactPhone: "+91 88776 65544", notes: "Renewal in discussion",
+    createdAt: "2023-08-01T00:00:00Z", updatedAt: "2023-08-01T00:00:00Z",
   },
+
   {
     id: "amc-006", contractNumber: "AMC/STP/2025-06", title: "STP & WTP Maintenance",
     vendorName: "Ion Exchange India Ltd.", category: "Water Treatment",
@@ -73,7 +83,9 @@ const SEED_AMC: AMCContract[] = [
     startDate: "2025-03-01", endDate: "2027-02-28", value: 72000,
     status: "active", renewalAlertDays: 60,
     contactPerson: "Deepak Joshi", contactPhone: "+91 77665 54433", notes: "",
+    createdAt: "2025-03-01T00:00:00Z", updatedAt: "2025-03-01T00:00:00Z",
   },
+
 ];
 
 const SEED_DOCS: FMDocument[] = [
@@ -82,55 +94,71 @@ const SEED_DOCS: FMDocument[] = [
     category: "SOP", version: "v2.1", status: "active",
     expiryDate: "", uploadedBy: "Admin User", uploadedAt: "2025-01-15",
     tags: ["DG", "Emergency", "Electrical"], description: "Step-by-step procedure for emergency DG start and load transfer.",
+    createdAt: "2025-01-15T00:00:00Z", updatedAt: "2025-01-15T00:00:00Z",
   },
+
   {
     id: "doc-002", docNumber: "SOP-002", title: "Fire Evacuation & Muster Point Plan",
     category: "SOP", version: "v3.0", status: "active",
     expiryDate: "", uploadedBy: "Safety Officer", uploadedAt: "2024-10-01",
     tags: ["Fire", "Evacuation", "Safety"], description: "Facility evacuation procedure with floor warden assignments.",
+    createdAt: "2024-10-01T00:00:00Z", updatedAt: "2024-10-01T00:00:00Z",
   },
+
   {
     id: "doc-003", docNumber: "CERT-001", title: "Fire NOC Certificate",
     category: "Certificate", version: "v1.0", status: "active",
     expiryDate: "2026-09-30", uploadedBy: "Admin User", uploadedAt: "2024-09-30",
     tags: ["Fire", "NOC", "Compliance"], description: "Fire No-Objection Certificate issued by Fire Department.",
+    createdAt: "2024-09-30T00:00:00Z", updatedAt: "2024-09-30T00:00:00Z",
   },
+
   {
     id: "doc-004", docNumber: "CERT-002", title: "Lift Fitness Certificate",
     category: "Certificate", version: "v1.0", status: "active",
     expiryDate: "2026-06-15", uploadedBy: "Admin User", uploadedAt: "2025-06-15",
     tags: ["Lift", "Elevator", "Compliance"], description: "Annual fitness certificate for all lifts by CMVR authority.",
+    createdAt: "2025-06-15T00:00:00Z", updatedAt: "2025-06-15T00:00:00Z",
   },
+
   {
     id: "doc-005", docNumber: "CERT-003", title: "Electrical Safety Audit Report",
     category: "Certificate", version: "v1.0", status: "under_review",
     expiryDate: "2026-03-31", uploadedBy: "Safety Officer", uploadedAt: "2025-03-31",
     tags: ["Electrical", "Audit", "Safety"], description: "Annual electrical safety audit by certified third-party inspector.",
+    createdAt: "2025-03-31T00:00:00Z", updatedAt: "2025-03-31T00:00:00Z",
   },
+
   {
     id: "doc-006", docNumber: "PERMIT-001", title: "Hot Work Permit Template",
     category: "Permit", version: "v1.2", status: "active",
     expiryDate: "", uploadedBy: "Admin User", uploadedAt: "2024-11-01",
     tags: ["Hot Work", "Welding", "Permit"], description: "Standard permit form for welding/grinding/cutting activities.",
+    createdAt: "2024-11-01T00:00:00Z", updatedAt: "2024-11-01T00:00:00Z",
   },
+
   {
     id: "doc-007", docNumber: "POLICY-001", title: "Health, Safety & Environment Policy",
     category: "Policy", version: "v4.0", status: "active",
     expiryDate: "", uploadedBy: "Admin User", uploadedAt: "2025-01-01",
     tags: ["HSE", "Policy", "Safety"], description: "Organisation-wide HSE policy statement signed by management.",
+    createdAt: "2025-01-01T00:00:00Z", updatedAt: "2025-01-01T00:00:00Z",
   },
+
   {
     id: "doc-008", docNumber: "MANUAL-001", title: "DG Set Operation Manual",
     category: "Manual", version: "v1.0", status: "active",
     expiryDate: "", uploadedBy: "Admin User", uploadedAt: "2024-05-01",
     tags: ["DG", "Manual", "Electrical"], description: "OEM operation and maintenance manual for Cummins 500 kVA DG.",
+    createdAt: "2024-05-01T00:00:00Z", updatedAt: "2024-05-01T00:00:00Z",
   },
+
 ];
 
 // ─── Blank initial state (filled from API after login) ────────────────────────
 const BLANK_USER: User = {
   id: "", name: "", email: "", role: "viewer",
-  department: "", active: true, createdAt: "",
+  department: "", active: true, createdAt: "", updatedAt: "",
 };
 
 const BLANK_STATE: AppState = {

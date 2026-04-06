@@ -100,7 +100,10 @@ export function AMC({ search }: { search: string }) {
         contactPerson:    sanitize(form.contactPerson || ""),
         contactPhone:     sanitize(form.contactPhone || ""),
         notes:            sanitize(form.notes || ""),
+        createdAt:        editing?.createdAt ?? new Date().toISOString(),
+        updatedAt:        new Date().toISOString(),
       };
+
       if (editing) {
         updateAMC(contract);
         toast("Contract updated", "success");
