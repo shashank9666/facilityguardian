@@ -19,7 +19,7 @@ import {
   apiGetAssets, apiCreateAsset, apiUpdateAsset, apiDeleteAsset,
   apiGetWorkOrders, apiCreateWorkOrder, apiUpdateWorkOrder, apiDeleteWorkOrder,
   apiGetIncidents, apiCreateIncident, apiUpdateIncident,
-  apiGetInventory, apiCreateInventoryItem, apiUpdateInventoryItem, apiRestockItem,
+  apiGetInventory, apiCreateInventoryItem, apiUpdateInventoryItem, apiDeleteInventoryItem, apiRestockItem,
   apiGetVendors, apiCreateVendor, apiUpdateVendor,
   apiGetSpaces, apiGetMaintenance,
   apiGetAMC, apiCreateAMC, apiUpdateAMC,
@@ -188,6 +188,7 @@ type Action =
   | { type: "UPDATE_INCIDENT";        payload: Incident }
   | { type: "UPDATE_INVENTORY";       payload: InventoryItem }
   | { type: "ADD_INVENTORY";          payload: InventoryItem }
+  | { type: "DELETE_INVENTORY";       payload: string }
   | { type: "ADD_VENDOR";             payload: Vendor }
   | { type: "UPDATE_VENDOR";          payload: Vendor }
   | { type: "ADD_CHECKLIST";          payload: ChecklistSubmission }
@@ -223,6 +224,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, inventory: [action.payload, ...state.inventory] };
     case "UPDATE_INVENTORY":
       return { ...state, inventory: state.inventory.map(i => i.id === action.payload.id ? action.payload : i) };
+    case "DELETE_INVENTORY":
+      return { ...state, inventory: state.inventory.filter(i => i.id !== action.payload) };
     case "ADD_VENDOR":
       return { ...state, vendors: [action.payload, ...state.vendors] };
     case "UPDATE_VENDOR":
@@ -269,6 +272,7 @@ interface AppContextValue {
   updateIncident: (id: string, body: Record<string, unknown>) => Promise<void>;
   addInventoryItem:    (body: Record<string, unknown>) => Promise<void>;
   updateInventoryItem: (id: string, body: Record<string, unknown>) => Promise<void>;
+  deleteInventoryItem: (id: string) => Promise<void>;
   restockInventoryItem:(id: string, qty: number) => Promise<void>;
   // Frontend-only CRUD
   submitChecklist:   (body: Record<string, unknown>) => Promise<void>;
@@ -424,6 +428,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "UPDATE_INVENTORY", payload: item });
   }, []);
 
+  const deleteInventoryItem = useCallback(async (id: string) => {
+    await apiDeleteInventoryItem(id);
+    dispatch({ type: "DELETE_INVENTORY", payload: id });
+  }, []);
+
   const restockInventoryItem = useCallback(async (id: string, qty: number) => {
     const item = await apiRestockItem(id, qty) as InventoryItem;
     dispatch({ type: "UPDATE_INVENTORY", payload: item });
@@ -468,7 +477,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addWorkOrder, updateWorkOrder,
       addVendor, updateVendor,
       addIncident, updateIncident,
-      addInventoryItem, updateInventoryItem, restockInventoryItem,
+      addInventoryItem, updateInventoryItem, deleteInventoryItem, restockInventoryItem,
       submitChecklist, submitMeterReading,
       addAMC, updateAMC,
       addDocument, updateDocument,

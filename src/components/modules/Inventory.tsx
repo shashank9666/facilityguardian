@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
+import { apiGetInventoryStats } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -9,7 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { fmtDate, fmtCurrency, sanitize } from "@/lib/utils";
 import type { InventoryItem, InventoryStatus } from "@/types";
 import { useRole } from "@/lib/rbac";
-import { Plus, AlertTriangle, RefreshCw } from "lucide-react";
+import { Plus, AlertTriangle, RefreshCw, Pencil, Trash2 } from "lucide-react";
 
 const STATUS_STYLE: Record<InventoryStatus, string> = {
   in_stock:     "bg-green-50 text-green-700 border-green-200",
@@ -18,13 +19,21 @@ const STATUS_STYLE: Record<InventoryStatus, string> = {
 };
 
 export function Inventory({ search }: { search: string }) {
-  const { state, addInventoryItem, restockInventoryItem, toast } = useApp();
+  const { state, addInventoryItem, updateInventoryItem, deleteInventoryItem, restockInventoryItem, toast } = useApp();
   const { canCreate, canDeleteInv } = useRole();
   const [filterStatus, setFilterStatus] = useState("all");
   const [addOpen, setAddOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [restockId, setRestockId] = useState<string | null>(null);
   const [restockQty, setRestockQty] = useState(0);
   const [form, setForm] = useState<Partial<InventoryItem>>({});
+  const [stats, setStats] = useState({ total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0, totalValue: 0 });
+
+  function loadStats() {
+    apiGetInventoryStats().then(s => setStats(s as typeof stats)).catch(console.error);
+  }
+
+  useEffect(() => { loadStats(); }, []);
 
   const filtered = useMemo(() => state.inventory.filter(i => {
     const q = search.toLowerCase();
@@ -33,8 +42,6 @@ export function Inventory({ search }: { search: string }) {
     return matchQ && matchS;
   }), [state.inventory, search, filterStatus]);
 
-  const totalValue = state.inventory.reduce((s,i) => s + i.quantity * i.unitCost, 0);
-
   async function handleRestock() {
     const item = state.inventory.find(i => i.id === restockId);
     if (!item || restockQty <= 0) return;
@@ -42,7 +49,17 @@ export function Inventory({ search }: { search: string }) {
       await restockInventoryItem(item.id, restockQty);
       toast(`${item.name} restocked (+${restockQty})`, "success");
       setRestockId(null); setRestockQty(0);
+      loadStats();
     } catch (err) { toast((err as Error).message ?? "Failed to restock", "error"); }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Are you sure you want to delete this item?")) return;
+    try {
+      await deleteInventoryItem(id);
+      toast("Item deleted", "success");
+      loadStats();
+    } catch (err) { toast((err as Error).message ?? "Failed to delete", "error"); }
   }
 
   return (
@@ -50,10 +67,10 @@ export function Inventory({ search }: { search: string }) {
       {/* KPI Row */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label:"Total Items",   value: state.inventory.length, bg:"bg-blue-50",   icon:"📦" },
-          { label:"In Stock",      value: state.inventory.filter(i=>i.status==="in_stock").length,     bg:"bg-green-50",  icon:"✅" },
-          { label:"Low Stock",     value: state.inventory.filter(i=>i.status==="low_stock").length,    bg:"bg-amber-50",  icon:"⚠️" },
-          { label:"Out of Stock",  value: state.inventory.filter(i=>i.status==="out_of_stock").length, bg:"bg-red-50",    icon:"🚫" },
+          { label:"Total Items",   value: stats.total, bg:"bg-blue-50",   icon:"📦" },
+          { label:"In Stock",      value: stats.in_stock,     bg:"bg-green-50",  icon:"✅" },
+          { label:"Low Stock",     value: stats.low_stock,    bg:"bg-amber-50",  icon:"⚠️" },
+          { label:"Out of Stock",  value: stats.out_of_stock, bg:"bg-red-50",    icon:"🚫" },
         ].map(s=>(
           <div key={s.label} className={`${s.bg} border border-white rounded-xl p-4`}>
             <div className="text-2xl mb-1">{s.icon}</div>
@@ -74,9 +91,9 @@ export function Inventory({ search }: { search: string }) {
           ))}
         </div>
         <div className="ml-auto text-xs font-semibold text-slate-500">
-          Total Inventory Value: <span className="text-blue-600">{fmtCurrency(totalValue)}</span>
+          Total Inventory Value: <span className="text-blue-600">{fmtCurrency(stats.totalValue)}</span>
         </div>
-        {canCreate && <Button variant="primary" size="sm" leftIcon={<Plus size={14}/>} onClick={()=>setAddOpen(true)}>Add Item</Button>}
+        {canCreate && <Button variant="primary" size="sm" leftIcon={<Plus size={14}/>} onClick={()=>{setForm({});setEditingId(null);setAddOpen(true);}}>Add Item</Button>}
       </div>
 
       {/* Table */}
@@ -95,7 +112,7 @@ export function Inventory({ search }: { search: string }) {
                 const pct = Math.min(100, Math.round(item.quantity / item.maxQuantity * 100));
                 const alert = item.status !== "in_stock";
                 return (
-                  <tr key={item.id} className={`border-b border-slate-50 hover:bg-slate-50/60 transition-colors ${alert?"bg-amber-50/20":""}`}>
+                  <tr key={item.id} className={`border-b border-slate-50 hover:bg-slate-50/60 transition-colors group ${alert?"bg-amber-50/20":""}`}>
                     <td className="px-4 py-3 font-mono text-xs text-slate-400">{item.code}</td>
                     <td className="px-4 py-3">
                       <div className="font-semibold text-slate-700">{item.name}</div>
@@ -115,12 +132,26 @@ export function Inventory({ search }: { search: string }) {
                     <td className="px-4 py-3 text-xs text-slate-500">{item.supplierName||"—"}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">{fmtDate(item.lastRestocked)}</td>
                     <td className="px-4 py-3">
-                      {canCreate && (
-                        <button onClick={()=>{setRestockId(item.id);setRestockQty(item.minQuantity);}}
-                          className="p-1.5 rounded hover:bg-green-50 text-slate-400 hover:text-green-600 transition-colors" title="Restock">
-                          <RefreshCw size={14}/>
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {canCreate && (
+                          <button onClick={()=>{setRestockId(item.id);setRestockQty(item.minQuantity);}}
+                            className="p-1.5 rounded hover:bg-green-50 text-slate-400 hover:text-green-600 transition-colors" title="Restock">
+                            <RefreshCw size={14}/>
+                          </button>
+                        )}
+                        {canCreate && (
+                          <button onClick={()=>{setEditingId(item.id);setForm(item);setAddOpen(true);}}
+                            className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+                            <Pencil size={14}/>
+                          </button>
+                        )}
+                        {canDeleteInv && (
+                          <button onClick={()=>handleDelete(item.id)}
+                            className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+                            <Trash2 size={14}/>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -153,21 +184,29 @@ export function Inventory({ search }: { search: string }) {
         })()}
       </Modal>
 
-      {/* Add Item Modal */}
-      <Modal open={addOpen} onClose={()=>{setAddOpen(false);setForm({});}} title="Add Inventory Item"
-        footer={<><Button variant="secondary" onClick={()=>setAddOpen(false)}>Cancel</Button><Button variant="primary" onClick={async ()=>{
+      {/* Add/Edit Item Modal */}
+      <Modal open={addOpen} onClose={()=>{setAddOpen(false);setForm({});setEditingId(null);}} title={editingId ? "Edit Inventory Item" : "Add Inventory Item"}
+        footer={<><Button variant="secondary" onClick={()=>{setAddOpen(false);setEditingId(null);}}>Cancel</Button><Button variant="primary" onClick={async ()=>{
           if (!form.name?.trim()) return;
           try {
-            await addInventoryItem({
+            const payload = {
               name: sanitize(form.name!), category: sanitize(form.category||"General"),
               unit: sanitize(form.unit||"Pcs"), quantity: Number(form.quantity)||0,
               minQuantity: Number(form.minQuantity)||0, maxQuantity: Number(form.maxQuantity)||100,
               location: sanitize(form.location||""), supplierName: sanitize(form.supplierName||""),
               unitCost: Number(form.unitCost)||0,
-            });
-            toast("Item added","success"); setAddOpen(false); setForm({});
-          } catch (err) { toast((err as Error).message ?? "Failed to add","error"); }
-        }}>Add Item</Button></>}>
+            };
+            if (editingId) {
+              await updateInventoryItem(editingId, payload);
+              toast("Item updated","success");
+            } else {
+              await addInventoryItem(payload);
+              toast("Item added","success");
+            }
+            setAddOpen(false); setForm({}); setEditingId(null);
+            loadStats();
+          } catch (err) { toast((err as Error).message ?? "Failed to save","error"); }
+        }}>{editingId ? "Save Changes" : "Add Item"}</Button></>}>
         <div className="grid grid-cols-2 gap-3">
           {[
             {l:"Name *",k:"name",t:"text",ph:"Item name"},

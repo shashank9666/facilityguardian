@@ -144,6 +144,11 @@ export async function apiGetInventory() {
   return res.data.map(norm);
 }
 
+export async function apiGetInventoryStats() {
+  const res = await request<{ data: Record<string, number> }>("/inventory/stats");
+  return res.data;
+}
+
 export async function apiCreateInventoryItem(body: Record<string, unknown>) {
   const res = await request<{ data: unknown }>("/inventory", { method: "POST", body: JSON.stringify(body) });
   return norm(res.data);
@@ -152,6 +157,10 @@ export async function apiCreateInventoryItem(body: Record<string, unknown>) {
 export async function apiUpdateInventoryItem(id: string, body: Record<string, unknown>) {
   const res = await request<{ data: unknown }>(`/inventory/${id}`, { method: "PATCH", body: JSON.stringify(body) });
   return norm(res.data);
+}
+
+export async function apiDeleteInventoryItem(id: string) {
+  await request(`/inventory/${id}`, { method: "DELETE" });
 }
 
 export async function apiRestockItem(id: string, quantity: number) {
@@ -193,6 +202,11 @@ export async function apiUpdateAMC(id: string, body: Record<string, unknown>) {
 export async function apiGetDocuments() {
   const res = await request<{ data: unknown[] }>("/documents");
   return res.data.map(norm);
+}
+
+export async function apiGetDocumentStats() {
+  const res = await request<{ data: Record<string, number> }>("/documents/stats");
+  return res.data;
 }
 
 export async function apiCreateDocument(body: Record<string, unknown>) {

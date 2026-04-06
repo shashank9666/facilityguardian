@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
+import { apiGetDocumentStats } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -56,6 +57,15 @@ export function Documents({ search }: { search: string }) {
   const [editing, setEditing]       = useState<FMDocument | null>(null);
   const [saving, setSaving]         = useState(false);
   const [form, setForm]             = useState<Partial<FMDocument>>({});
+  const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, expired: 0 });
+
+  function loadStats() {
+    apiGetDocumentStats().then(s => setStats(s as typeof stats)).catch(console.error);
+  }
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -112,17 +122,13 @@ export function Documents({ search }: { search: string }) {
         toast("Document added", "success");
       }
       setModalOpen(false); setForm({});
+      loadStats();
     } catch (err) {
       toast((err as Error).message ?? "Failed to save document", "error");
     } finally {
       setSaving(false);
     }
   }
-
-  // Stats
-  const activeCount  = documents.filter(d => d.status === "active").length;
-  const expiringCount = documents.filter(d => d.expiryDate && daysUntil(d.expiryDate) <= 30 && daysUntil(d.expiryDate) >= 0).length;
-  const expiredCount = documents.filter(d => d.status === "expired" || (d.expiryDate && daysUntil(d.expiryDate) < 0)).length;
 
   // Category counts for sidebar tabs
   const catCounts = DOC_CATEGORIES.reduce<Record<string, number>>((acc, c) => {
@@ -135,10 +141,10 @@ export function Documents({ search }: { search: string }) {
       {/* KPI strip */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: "Total Documents", val: documents.length,  color: "text-blue-600 bg-blue-50",   icon: <FileText size={18}/> },
-          { label: "Active",          val: activeCount,        color: "text-green-600 bg-green-50", icon: <CheckCircle2 size={18}/> },
-          { label: "Expiring (30d)",  val: expiringCount,      color: "text-amber-600 bg-amber-50", icon: <AlertTriangle size={18}/> },
-          { label: "Expired",         val: expiredCount,       color: "text-red-600 bg-red-50",     icon: <Clock size={18}/> },
+          { label: "Total Documents", val: stats.total,  color: "text-blue-600 bg-blue-50",   icon: <FileText size={18}/> },
+          { label: "Active",          val: stats.active,        color: "text-green-600 bg-green-50", icon: <CheckCircle2 size={18}/> },
+          { label: "Expiring (30d)",  val: stats.expiring,      color: "text-amber-600 bg-amber-50", icon: <AlertTriangle size={18}/> },
+          { label: "Expired",         val: stats.expired,       color: "text-red-600 bg-red-50",     icon: <Clock size={18}/> },
         ].map(k => (
           <div key={k.label} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${k.color}`}>{k.icon}</div>
@@ -149,12 +155,12 @@ export function Documents({ search }: { search: string }) {
       </div>
 
       {/* Expiry alert */}
-      {expiringCount > 0 && (
+      {stats.expiring > 0 && (
         <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5"/>
           <div>
             <div className="text-[13px] font-semibold text-amber-800">
-              {expiringCount} document{expiringCount > 1 ? "s" : ""} expiring within 30 days
+              {stats.expiring} document{stats.expiring > 1 ? "s" : ""} expiring within 30 days
             </div>
             <div className="text-[11px] text-amber-600 mt-0.5">
               {documents
