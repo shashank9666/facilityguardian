@@ -17,7 +17,13 @@ const PAGE_META: Record<NavPage, { title: string; subtitle: string }> = {
   inventory:    { title: "Inventory",             subtitle: "Spare parts & consumables stock" },
   reports:      { title: "Reports & Analytics",   subtitle: "Insights and performance metrics" },
   settings:     { title: "Settings",              subtitle: "Users, roles & system configuration" },
+  "my-tasks":   { title: "My Tasks",              subtitle: "Your personal task list & assignments" },
+  checklists:   { title: "Checklists & Surveys",  subtitle: "Facility inspections & SOP audits" },
+  "meter-readings": { title: "Meter Readings",    subtitle: "Utility consumption & energy tracking" },
+  amc:          { title: "AMC Contracts",         subtitle: "Annual Maintenance Contracts & renewals" },
+  documents:    { title: "Document Library",      subtitle: "Digital SOPs, manuals & certificates" },
 };
+
 
 interface TopBarProps {
   activePage: NavPage;

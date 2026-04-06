@@ -6,7 +6,7 @@ import type { NavPage } from "@/types";
 import {
   LayoutDashboard, Box, ClipboardList, Wrench, Users2,
   LayoutTemplate, AlertTriangle, Package, BarChart3, Settings,
-  Zap,
+  Zap, Briefcase, ListChecks, Activity, FileText, FolderOpen,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -19,8 +19,16 @@ const NAV_GROUPS = [
     label: "Operations",
     items: [
       { page: "dashboard"   as NavPage, icon: <LayoutDashboard size={17} />, label: "Dashboard" },
+      { page: "my-tasks"    as NavPage, icon: <Briefcase       size={17} />, label: "My Tasks" },
       { page: "work-orders" as NavPage, icon: <ClipboardList   size={17} />, label: "Work Orders",    badge: "open" },
       { page: "incidents"   as NavPage, icon: <AlertTriangle   size={17} />, label: "Incidents",      badge: "new"  },
+    ],
+  },
+  {
+    label: "Field Work",
+    items: [
+      { page: "checklists"  as NavPage, icon: <ListChecks      size={17} />, label: "Checklists" },
+      { page: "meter-readings" as NavPage, icon: <Activity     size={17} />, label: "Meter Readings" },
     ],
   },
   {
@@ -29,6 +37,7 @@ const NAV_GROUPS = [
       { page: "assets"      as NavPage, icon: <Box             size={17} />, label: "Assets" },
       { page: "maintenance" as NavPage, icon: <Wrench          size={17} />, label: "Maintenance" },
       { page: "spaces"      as NavPage, icon: <LayoutTemplate  size={17} />, label: "Spaces" },
+      { page: "amc"         as NavPage, icon: <FileText        size={17} />, label: "AMC" },
     ],
   },
   {
@@ -36,6 +45,7 @@ const NAV_GROUPS = [
     items: [
       { page: "vendors"     as NavPage, icon: <Users2          size={17} />, label: "Vendors" },
       { page: "inventory"   as NavPage, icon: <Package         size={17} />, label: "Inventory",      badge: "low"  },
+      { page: "documents"   as NavPage, icon: <FolderOpen      size={17} />, label: "Documents" },
     ],
   },
   {
@@ -46,6 +56,7 @@ const NAV_GROUPS = [
     ],
   },
 ];
+
 
 export function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const { state } = useApp();

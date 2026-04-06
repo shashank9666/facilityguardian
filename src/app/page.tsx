@@ -19,6 +19,12 @@ import { Incidents }   from "@/components/modules/Incidents";
 import { Inventory }   from "@/components/modules/Inventory";
 import { Reports }     from "@/components/modules/Reports";
 import { Settings }    from "@/components/modules/Settings";
+import { MyTasks }     from "@/components/modules/MyTasks";
+import { Checklists }  from "@/components/modules/Checklists";
+import { MeterReadings } from "@/components/modules/MeterReadings";
+import { AMC }         from "@/components/modules/AMC";
+import { Documents }   from "@/components/modules/Documents";
+
 
 import type { NavPage } from "@/types";
 import { Building2 }   from "lucide-react";
@@ -91,6 +97,13 @@ function FMNexusApp() {
             {page === "inventory"   && <Inventory search={search} />}
             {page === "reports"     && <Reports />}
             {page === "settings"    && <Settings />}
+            {page === "my-tasks"    && <MyTasks />}
+            {page === "checklists"  && <Checklists />}
+            {page === "meter-readings" && <MeterReadings />}
+
+            {page === "amc"         && <AMC search={search} />}
+            {page === "documents"   && <Documents search={search} />}
+
           </div>
         </main>
       </div>
