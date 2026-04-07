@@ -38,6 +38,23 @@ export function Dashboard() {
   const totalOccupied   = spaces.reduce((s,sp) => s + sp.occupied, 0);
   const occupancyPct    = totalCapacity > 0 ? Math.round(totalOccupied / totalCapacity * 100) : 0;
 
+  // ── Calculated Stats ──
+  // 1. Avg Response Time (Work Order created -> started)
+  const respondedWOs = workOrders.filter(w => w.startedAt);
+  const avgResponseHrs = respondedWOs.length > 0 
+    ? respondedWOs.reduce((acc, w) => acc + (new Date(w.startedAt!).getTime() - new Date(w.createdAt).getTime()), 0) / (respondedWOs.length * 3600000)
+    : 0;
+
+  // 2. SLA Compliance (% of completed WOs done before dueDate)
+  const completedWOs = workOrders.filter(w => w.status === "completed");
+  const onTimeWOs = completedWOs.filter(w => w.completedAt && new Date(w.completedAt) <= new Date(w.dueDate));
+  const slaCompliance = completedWOs.length > 0 ? Math.round((onTimeWOs.length / completedWOs.length) * 100) : 100;
+
+  // 3. PM Completion Rate (% of preventive WOs completed)
+  const preventiveWOs = workOrders.filter(w => w.type === "preventive");
+  const completedPreventive = preventiveWOs.filter(w => w.status === "completed");
+  const pmCompletionRate = preventiveWOs.length > 0 ? Math.round((completedPreventive.length / preventiveWOs.length) * 100) : 100;
+
   // ── Critical Alerts ──
   const alerts = [
     ...workOrders.filter(w => w.priority === "critical" && w.status !== "completed")
@@ -234,9 +251,9 @@ export function Dashboard() {
           <CardBody className="space-y-2">
             {[
               { label:"Completed This Week", value: completedThisWeek, icon:<CheckCircle size={14} className="text-emerald-500"/>, color:"text-emerald-600" },
-              { label:"Avg Response Time",   value: "3.2 hrs",         icon:<Clock size={14} className="text-amber-500"/>,        color:"text-amber-600"  },
-              { label:"SLA Compliance",      value: "87%",             icon:<TrendingUp size={14} className="text-blue-500"/>,    color:"text-blue-600"   },
-              { label:"PM Completion Rate",  value: `${preventiveMaintenance.length > 0 ? Math.round(preventiveMaintenance.filter(p=>p.status!=="overdue").length/preventiveMaintenance.length*100) : 100}%`,
+              { label:"Avg Response Time",   value: avgResponseHrs > 0 ? `${avgResponseHrs.toFixed(1)} hrs` : "N/A", icon:<Clock size={14} className="text-amber-500"/>, color:"text-amber-600"  },
+              { label:"SLA Compliance",      value: `${slaCompliance}%`, icon:<TrendingUp size={14} className="text-blue-500"/>,    color:"text-blue-600"   },
+              { label:"PM Completion Rate",  value: `${pmCompletionRate}%`,
                 icon:<Wrench size={14} className="text-violet-500"/>, color:"text-violet-600" },
               { label:"Active Vendors",      value: state.vendors.filter(v=>v.status==="active").length,
                 icon:<Package size={14} className="text-slate-500"/>, color:"text-slate-600" },

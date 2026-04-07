@@ -14,3 +14,7 @@ export async function apiUpdateWorkOrder(id: string, body: Record<string, unknow
   const res = await request<{ data: unknown }>(`/work-orders/${id}`, { method: "PATCH", body: JSON.stringify(body) });
   return norm(res.data);
 }
+
+export async function apiDeleteWorkOrder(id: string) {
+  await request(`/work-orders/${id}`, { method: "DELETE" });
+}

@@ -71,6 +71,7 @@ export interface WorkOrder {
   createdAt: string;
   updatedAt: string;
   dueDate: string;
+  startedAt?: string;
   completedAt?: string;
   estimatedHours: number;
   actualHours?: number;

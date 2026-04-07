@@ -9,7 +9,7 @@ import { cn, fmtDate, daysUntil, sanitize } from "@/lib/utils";
 import type { AMCContract, AMCStatus } from "@/types";
 import {
   FileText, Plus, Pencil, Phone, Calendar, AlertTriangle,
-  CheckCircle2, Clock, RefreshCw, IndianRupee,
+  CheckCircle2, Clock, RefreshCw, IndianRupee, Trash2,
 } from "lucide-react";
 
 const STATUS_BADGE: Record<AMCStatus, string> = {
@@ -46,7 +46,7 @@ function computeStatus(endDate: string): AMCStatus {
 }
 
 export function AMC({ search }: { search: string }) {
-  const { state, addAMC, updateAMC, toast, fetchAMC } = useApp();
+  const { state, addAMC, updateAMC, deleteAMC, toast, fetchAMC } = useApp();
 
   useEffect(() => {
     fetchAMC();
@@ -121,6 +121,16 @@ export function AMC({ search }: { search: string }) {
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm("Are you sure you want to delete this contract?")) return;
+    try {
+      await deleteAMC(id);
+      toast("Contract deleted", "success");
+    } catch (err) {
+      toast((err as Error).message ?? "Failed to delete", "error");
+    }
+  }
+
   // Stats
   const activeCount  = contracts.filter(c => c.status === "active").length;
   const expiringCount = contracts.filter(c => c.status === "expiring_soon").length;
@@ -189,6 +199,10 @@ export function AMC({ search }: { search: string }) {
               <button onClick={() => openEdit(c)}
                 className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-300 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all">
                 <Pencil size={14}/>
+              </button>
+              <button onClick={() => handleDelete(c.id)}
+                className="absolute top-4 right-10 p-1.5 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all">
+                <Trash2 size={14}/>
               </button>
 
               <div className="flex items-start gap-4">

@@ -11,7 +11,7 @@ import type { FMDocument, DocCategory, DocStatus } from "@/types";
 import {
   FileText, FileBadge, FileCheck, ScrollText, BookOpen,
   Plus, Pencil, Download, AlertTriangle, CheckCircle2, Clock,
-  Search, Tag,
+  Search, Tag, Trash2,
 } from "lucide-react";
 
 const CAT_ICON: Record<DocCategory, React.ReactNode> = {
@@ -48,7 +48,7 @@ const DOC_CATEGORIES: DocCategory[] = ["SOP","Certificate","Permit","Policy","Ma
 const DOC_STATUSES: DocStatus[] = ["active","under_review","expired","archived"];
 
 export function Documents({ search }: { search: string }) {
-  const { state, addDocument, updateDocument, toast, fetchDocuments } = useApp();
+  const { state, addDocument, updateDocument, deleteDocument, toast, fetchDocuments } = useApp();
 
   const [catFilter, setCatFilter] = useState<DocCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<DocStatus | "all">("all");
@@ -129,6 +129,17 @@ export function Documents({ search }: { search: string }) {
       toast((err as Error).message ?? "Failed to save document", "error");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Are you sure you want to delete this document?")) return;
+    try {
+      await deleteDocument(id);
+      toast("Document deleted", "success");
+      loadStats();
+    } catch (err) {
+      toast((err as Error).message ?? "Failed to delete", "error");
     }
   }
 
@@ -273,6 +284,9 @@ export function Documents({ search }: { search: string }) {
                       </button>
                       <button title="Edit" onClick={() => openEdit(d)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                         <Pencil size={13}/>
+                      </button>
+                      <button title="Delete" onClick={() => handleDelete(d.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <Trash2 size={13}/>
                       </button>
                     </div>
                   </td>

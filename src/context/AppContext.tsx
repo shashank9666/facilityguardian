@@ -9,7 +9,7 @@ import React, {
   useEffect, useState, type ReactNode,
 } from "react";
 import type {
-  AppState, Toast, Asset, WorkOrder, InventoryItem, Incident, Vendor, User,
+  AppState, Toast, Asset, WorkOrder, InventoryItem, Incident, Vendor, Space, User,
   ChecklistSubmission, MeterReading, AMCContract, FMDocument, NavPage,
 } from "@/types";
 import { uid } from "@/lib/utils";
@@ -21,9 +21,10 @@ import {
   apiGetIncidents, apiCreateIncident, apiUpdateIncident,
   apiGetInventory, apiCreateInventoryItem, apiUpdateInventoryItem, apiDeleteInventoryItem, apiRestockItem,
   apiGetVendors, apiCreateVendor, apiUpdateVendor,
-  apiGetSpaces, apiGetMaintenance,
-  apiGetAMC, apiCreateAMC, apiUpdateAMC,
-  apiGetDocuments, apiCreateDocument, apiUpdateDocument,
+  apiGetSpaces, apiCreateSpace, apiUpdateSpace, apiDeleteSpace,
+  apiGetMaintenance,
+  apiGetAMC, apiCreateAMC, apiUpdateAMC, apiDeleteAMC,
+  apiGetDocuments, apiCreateDocument, apiUpdateDocument, apiDeleteDocument,
   apiGetChecklists, apiSubmitChecklist,
   apiGetMeterReadings, apiSubmitMeterReading,
 } from "@/lib/api";
@@ -60,12 +61,17 @@ type Action =
   | { type: "DELETE_INVENTORY";       payload: string }
   | { type: "ADD_VENDOR";             payload: Vendor }
   | { type: "UPDATE_VENDOR";          payload: Vendor }
+  | { type: "ADD_SPACE";              payload: Space }
+  | { type: "UPDATE_SPACE";           payload: Space }
+  | { type: "DELETE_SPACE";           payload: string }
   | { type: "ADD_CHECKLIST";          payload: ChecklistSubmission }
   | { type: "ADD_METER_READING";      payload: MeterReading }
   | { type: "ADD_AMC";                payload: AMCContract }
   | { type: "UPDATE_AMC";             payload: AMCContract }
   | { type: "ADD_DOCUMENT";           payload: FMDocument }
   | { type: "UPDATE_DOCUMENT";        payload: FMDocument }
+  | { type: "DELETE_DOCUMENT";        payload: string }
+  | { type: "DELETE_AMC";             payload: string }
   | { type: "TOAST_ADD";              payload: Omit<Toast, "id"> }
   | { type: "TOAST_REMOVE";           payload: string };
 
@@ -99,6 +105,12 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, vendors: [action.payload, ...state.vendors] };
     case "UPDATE_VENDOR":
       return { ...state, vendors: state.vendors.map(v => v.id === action.payload.id ? action.payload : v) };
+    case "ADD_SPACE":
+      return { ...state, spaces: [action.payload, ...state.spaces] };
+    case "UPDATE_SPACE":
+      return { ...state, spaces: state.spaces.map(s => s.id === action.payload.id ? action.payload : s) };
+    case "DELETE_SPACE":
+      return { ...state, spaces: state.spaces.filter(s => s.id !== action.payload) };
     case "ADD_CHECKLIST":
       return { ...state, checklistSubmissions: [action.payload, ...state.checklistSubmissions] };
     case "ADD_METER_READING":
@@ -111,6 +123,10 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, documents: [action.payload, ...state.documents] };
     case "UPDATE_DOCUMENT":
       return { ...state, documents: state.documents.map(d => d.id === action.payload.id ? action.payload : d) };
+    case "DELETE_DOCUMENT":
+      return { ...state, documents: state.documents.filter(d => d.id !== action.payload) };
+    case "DELETE_AMC":
+      return { ...state, amcContracts: state.amcContracts.filter(a => a.id !== action.payload) };
     case "TOAST_ADD":
       return { ...state, toasts: [...state.toasts, { id: uid(), ...action.payload }] };
     case "TOAST_REMOVE":
@@ -137,6 +153,9 @@ interface AppContextValue {
   updateWorkOrder: (id: string, body: Record<string, unknown>) => Promise<void>;
   addVendor:    (body: Record<string, unknown>) => Promise<void>;
   updateVendor: (id: string, body: Record<string, unknown>) => Promise<void>;
+  addSpace:    (body: Record<string, unknown>) => Promise<void>;
+  updateSpace: (id: string, body: Record<string, unknown>) => Promise<void>;
+  deleteSpace: (id: string) => Promise<void>;
   addIncident:    (body: Record<string, unknown>) => Promise<void>;
   updateIncident: (id: string, body: Record<string, unknown>) => Promise<void>;
   addInventoryItem:    (body: Record<string, unknown>) => Promise<void>;
@@ -148,8 +167,10 @@ interface AppContextValue {
   submitMeterReading:(body: Partial<MeterReading>) => Promise<void>;
   addAMC:    (body: Partial<AMCContract>) => Promise<void>;
   updateAMC: (id: string, body: Partial<AMCContract>) => Promise<void>;
+  deleteAMC: (id: string) => Promise<void>;
   addDocument:    (body: Partial<FMDocument>) => Promise<void>;
   updateDocument: (id: string, body: Partial<FMDocument>) => Promise<void>;
+  deleteDocument: (id: string) => Promise<void>;
   activePage: NavPage;
   navigateTo: (page: NavPage) => void;
   refreshAll: () => Promise<void>;
@@ -180,10 +201,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTimeout(() => dispatch({ type: "TOAST_REMOVE", payload: id }), 3500);
   }, []);
 
-  // Persistent activePage
+  // Robust activePage initialization with SSR safety
   const [activePage, setActivePage] = useState<NavPage>(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("fm_active_page") as NavPage) || "dashboard";
+      const saved = localStorage.getItem("fm_active_page") as NavPage;
+      if (saved) return saved;
     }
     return "dashboard";
   });
@@ -193,8 +215,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("fm_active_page", p);
   }, []);
 
+  // Ensure activePage stay sync'd on client switch/hydrate
+  useEffect(() => {
+    const saved = localStorage.getItem("fm_active_page") as NavPage;
+    if (saved && saved !== activePage) {
+      setActivePage(saved);
+    }
+  }, []); // Only once on mount
+
   const refreshAll = useCallback(async () => {
-    setLoading(true);
+    // Only show full page spinner if we don't have a user yet (initial load)
+    const isInitial = !state.currentUser.id;
+    if (isInitial) setLoading(true);
     try {
       const [assets, workOrders, vendors, incidents, inventory, spaces, preventiveMaintenance, amc, docs, check, meter] =
         await Promise.all([
@@ -211,7 +243,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, state.currentUser.id]);
 
   // Individual fetchers
   const fetchAssets      = useCallback(async () => { const data = await apiGetAssets();      dispatch({ type: "SET_ALL_DATA", payload: { assets: data }}); }, []);
@@ -296,7 +328,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "UPDATE_VENDOR", payload: vendor });
   }, []);
 
-  // ── Incident helpers ──────────────────────────────────────────────────────
+  // ── Space helpers ─────────────────────────────────────────────────────────────
+  const addSpace = useCallback(async (body: Record<string, unknown>) => {
+    const space = await apiCreateSpace(body) as Space;
+    dispatch({ type: "ADD_SPACE", payload: space });
+  }, []);
+
+  const updateSpace = useCallback(async (id: string, body: Record<string, unknown>) => {
+    const space = await apiUpdateSpace(id, body) as Space;
+    dispatch({ type: "UPDATE_SPACE", payload: space });
+  }, []);
+
+  const deleteSpace = useCallback(async (id: string) => {
+    await apiDeleteSpace(id);
+    dispatch({ type: "DELETE_SPACE", payload: id });
+  }, []);
+
+  // ── Incident helpers ──────────────────────────────────────────────────────────
   const addIncident = useCallback(async (body: Record<string, unknown>) => {
     const inc = await apiCreateIncident(body) as Incident;
     dispatch({ type: "ADD_INCIDENT", payload: inc });
@@ -359,6 +407,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "UPDATE_DOCUMENT", payload: doc });
   }, []);
 
+  const deleteDocument = useCallback(async (id: string) => {
+    await apiDeleteDocument(id);
+    dispatch({ type: "DELETE_DOCUMENT", payload: id });
+  }, []);
+
+  const deleteAMC = useCallback(async (id: string) => {
+    await apiDeleteAMC(id);
+    dispatch({ type: "DELETE_AMC", payload: id });
+  }, []);
+
   return (
     <AppContext.Provider value={{
       state, dispatch, loading, toast,
@@ -366,11 +424,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addAsset, updateAsset, deleteAsset,
       addWorkOrder, updateWorkOrder,
       addVendor, updateVendor,
+      addSpace, updateSpace, deleteSpace,
       addIncident, updateIncident,
       addInventoryItem, updateInventoryItem, deleteInventoryItem, restockInventoryItem,
       submitChecklist, submitMeterReading,
-      addAMC, updateAMC,
-      addDocument, updateDocument,
+      addAMC, updateAMC, deleteAMC,
+      addDocument, updateDocument, deleteDocument,
       activePage, navigateTo,
       refreshAll,
       fetchAssets, fetchWorkOrders, fetchVendors, fetchIncidents, fetchInventory,

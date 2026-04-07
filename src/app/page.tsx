@@ -5,25 +5,25 @@ import { AppProvider, useApp } from "@/context/AppContext";
 import { Sidebar }       from "@/components/layout/Sidebar";
 import { TopBar }        from "@/components/layout/TopBar";
 import { ToastContainer } from "@/components/ui/Toast";
-import { LoginScreen }   from "@/app/auth/LoginScreen";
+import { LoginScreen }   from "./auth/LoginScreen";
 import { getToken }      from "@/lib/api";
 
 // Module pages
-import { Dashboard }   from "@/app/dashboard/Dashboard";
-import { Assets }      from "@/app/assets/Assets";
-import { WorkOrders }  from "@/app/work-orders/WorkOrders";
-import { Maintenance } from "@/app/maintenance/Maintenance";
-import { Vendors }     from "@/app/vendors/Vendors";
-import { Spaces }      from "@/app/spaces/Spaces";
-import { Incidents }   from "@/app/incidents/Incidents";
-import { Inventory }   from "@/app/inventory/Inventory";
-import { Reports }     from "@/app/reports/Reports";
-import { Settings }    from "@/app/settings/Settings";
-import { MyTasks }     from "@/app/tasks/MyTasks";
-import { Checklists }  from "@/app/checklists/Checklists";
-import { MeterReadings } from "@/app/meter-readings/MeterReadings";
-import { AMC }         from "@/app/amc/AMC";
-import { Documents }   from "@/app/documents/Documents";
+import { Dashboard }   from "./dashboard/Dashboard";
+import { Assets }      from "./assets/Assets";
+import { WorkOrders }  from "./work-orders/WorkOrders";
+import { Maintenance } from "./maintenance/Maintenance";
+import { Vendors }     from "./vendors/Vendors";
+import { Spaces }      from "./spaces/Spaces";
+import { Incidents }   from "./incidents/Incidents";
+import { Inventory }   from "./inventory/Inventory";
+import { Reports }     from "./reports/Reports";
+import { Settings }    from "./settings/Settings";
+import { MyTasks }     from "./tasks/MyTasks";
+import { Checklists }  from "./checklists/Checklists";
+import { MeterReadings } from "./meter-readings/MeterReadings";
+import { AMC }         from "./amc/AMC";
+import { Documents }   from "./documents/Documents";
 
 
 import type { NavPage } from "@/types";
@@ -49,7 +49,7 @@ function FullPageSpinner() {
 
 // ─── Main App (inside AppProvider context) ────────────────────────────────────
 function FMNexusApp() {
-  const { state, loading, logout, activePage, navigateTo } = useApp();
+  const { state, loading, logout, activePage, navigateTo, refreshAll } = useApp();
   const [search, setSearch]         = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [mounted, setMounted]       = useState(false);
@@ -57,8 +57,10 @@ function FMNexusApp() {
   useEffect(() => { setMounted(true); }, []);
 
   const handleSearch   = useCallback((v: string)  => setSearch(v), []);
-  const handleNavigate = useCallback((p: NavPage)  => { navigateTo(p); setSearch(""); }, []);
-  const handleRefresh  = useCallback(() => setRefreshKey(k => k + 1), []);
+  const handleNavigate = useCallback((p: NavPage)  => { navigateTo(p); setSearch(""); }, [navigateTo]);
+  const handleRefresh  = useCallback(() => {
+    refreshAll();
+  }, [refreshAll]);
 
   // Solve hydration mismatch: return null or a simple shell until mounted
   if (!mounted) return null;
@@ -85,7 +87,7 @@ function FMNexusApp() {
         />
 
         <main className="flex-1 overflow-y-auto p-6">
-          <div key={`${activePage}-${refreshKey}`} className="animate-slide-up">
+          <div className="animate-slide-up">
             {activePage === "dashboard"   && <Dashboard />}
             {activePage === "assets"      && <Assets search={search} />}
             {activePage === "work-orders" && <WorkOrders search={search} />}

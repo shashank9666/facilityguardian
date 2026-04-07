@@ -19,3 +19,7 @@ export async function apiUpdateDocument(id: string, body: Record<string, unknown
   const res = await request<{ data: unknown }>(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(body) });
   return norm(res.data);
 }
+
+export async function apiDeleteDocument(id: string) {
+  await request(`/documents/${id}`, { method: "DELETE" });
+}

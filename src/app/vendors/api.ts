@@ -14,3 +14,7 @@ export async function apiUpdateVendor(id: string, body: Record<string, unknown>)
   const res = await request<{ data: unknown }>(`/vendors/${id}`, { method: "PATCH", body: JSON.stringify(body) });
   return norm(res.data);
 }
+
+export async function apiDeleteVendor(id: string) {
+  await request(`/vendors/${id}`, { method: "DELETE" });
+}
