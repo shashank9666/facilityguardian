@@ -296,8 +296,8 @@ export function WorkOrders({ search }: { search: string }) {
             <div>
               <div className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide mb-3">Activity Log</div>
               <div className="space-y-2">
-                {detailWO.auditLog.map(e => (
-                  <div key={e.id} className="flex gap-2 text-xs">
+                {detailWO.auditLog.map((e, idx) => (
+                  <div key={(e as any).id || (e as any)._id || idx} className="flex gap-2 text-xs">
                     <div className="w-2 h-2 rounded-full bg-blue-400 mt-1.5 flex-shrink-0"/>
                     <div>
                       <span className="font-semibold text-slate-600">{e.action}</span>
