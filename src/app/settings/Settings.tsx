@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { USERS } from "@/lib/seed-data";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
@@ -10,6 +9,7 @@ import { initials, avatarColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/lib/rbac";
 import { Shield, Users, Bell, Database, Lock } from "lucide-react";
+import type { User } from "@/types";
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   admin:      ["View All","Create/Edit Assets","Create Work Orders","Manage Vendors","Manage Users","View Reports","System Settings"],
@@ -22,6 +22,9 @@ export function Settings() {
   const { state, toast } = useApp();
   const { canManageUsers, isAdmin } = useRole();
   const [activeTab, setActiveTab] = useState(canManageUsers ? "users" : "notif");
+
+  // Using current user as the only user if USERS is unavailable (since we're removing mock data)
+  const displayUsers: User[] = state.currentUser.id ? [state.currentUser] : [];
 
   return (
     <div className="space-y-4">
@@ -45,10 +48,10 @@ export function Settings() {
       {activeTab === "users" && (
         <div className="grid grid-cols-2 gap-5">
           <Card>
-            <CardHeader title="Users" subtitle={`${USERS.length} total users`}
+            <CardHeader title="Users" subtitle={`${displayUsers.length} total users`}
               action={canManageUsers ? <Button variant="primary" size="sm">+ Invite User</Button> : undefined}/>
             <div>
-              {USERS.map(u=>(
+              {displayUsers.map((u: User)=>(
                 <div key={u.id} className="flex items-center gap-3 px-5 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
                   <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0", avatarColor(u.name))}>
                     {initials(u.name)}
@@ -70,6 +73,9 @@ export function Settings() {
                   </div>
                 </div>
               ))}
+              {displayUsers.length === 0 && (
+                <div className="p-8 text-center text-slate-400 text-sm">No users loaded.</div>
+              )}
             </div>
           </Card>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -21,7 +21,12 @@ const STATUS_EMOJI: Record<AssetStatus, string> = {
 };
 
 export function Assets({ search }: { search: string }) {
-  const { state, addAsset, deleteAsset, toast } = useApp();
+  const { state, addAsset, deleteAsset, toast, fetchAssets } = useApp();
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+
   const { canCreate, canDeleteAsset } = useRole();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");

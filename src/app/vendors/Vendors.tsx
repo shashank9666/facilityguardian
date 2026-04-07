@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -34,7 +34,12 @@ function StarRating({ value }: { value: number }) {
 }
 
 export function Vendors({ search }: { search: string }) {
-  const { state, addVendor, updateVendor, toast } = useApp();
+  const { state, addVendor, updateVendor, toast, fetchVendors } = useApp();
+
+  useEffect(() => {
+    fetchVendors();
+  }, [fetchVendors]);
+
   const { canManageVendors } = useRole();
 
   const [filter, setFilter]     = useState("all");

@@ -19,7 +19,7 @@ const STATUS_STYLE: Record<InventoryStatus, string> = {
 };
 
 export function Inventory({ search }: { search: string }) {
-  const { state, addInventoryItem, updateInventoryItem, deleteInventoryItem, restockInventoryItem, toast } = useApp();
+  const { state, addInventoryItem, updateInventoryItem, deleteInventoryItem, restockInventoryItem, toast, fetchInventory } = useApp();
   const { canCreate, canDeleteInv } = useRole();
   const [filterStatus, setFilterStatus] = useState("all");
   const [addOpen, setAddOpen] = useState(false);
@@ -33,7 +33,10 @@ export function Inventory({ search }: { search: string }) {
     apiGetInventoryStats().then(s => setStats(s as typeof stats)).catch(console.error);
   }
 
-  useEffect(() => { loadStats(); }, []);
+  useEffect(() => {
+    loadStats();
+    fetchInventory();
+  }, [fetchInventory]);
 
   const filtered = useMemo(() => state.inventory.filter(i => {
     const q = search.toLowerCase();

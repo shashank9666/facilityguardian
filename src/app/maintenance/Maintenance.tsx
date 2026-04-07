@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -8,7 +8,13 @@ import { fmtDate, daysUntil } from "@/lib/utils";
 import { Wrench, CheckCircle, Clock, Calendar } from "lucide-react";
 
 export function Maintenance({ search }: { search: string }) {
-  const { state } = useApp();
+  const { state, fetchMaintenance, fetchAssets } = useApp();
+
+  useEffect(() => {
+    fetchMaintenance();
+    fetchAssets();
+  }, [fetchMaintenance, fetchAssets]);
+
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const schedules = state.preventiveMaintenance.filter(pm => {

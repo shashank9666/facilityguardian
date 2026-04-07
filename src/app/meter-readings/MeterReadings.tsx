@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -48,7 +48,12 @@ const TYPE_BADGE: Record<string, string> = {
 };
 
 export function MeterReadings() {
-  const { state, submitMeterReading, toast } = useApp();
+  const { state, submitMeterReading, toast, fetchMeterReadings } = useApp();
+
+  useEffect(() => {
+    fetchMeterReadings();
+  }, [fetchMeterReadings]);
+
   const readings = state.meterReadings;
 
   const [formOpen, setFormOpen] = useState(false);

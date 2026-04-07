@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -21,7 +21,12 @@ const TYPE_ICON: Record<string, string> = {
 };
 
 export function Spaces({ search }: { search: string }) {
-  const { state } = useApp();
+  const { state, fetchSpaces } = useApp();
+
+  useEffect(() => {
+    fetchSpaces();
+  }, [fetchSpaces]);
+
   const { canManageSpaces } = useRole();
 
   const [filterSite,   setFilterSite]   = useState("all");

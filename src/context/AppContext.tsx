@@ -28,137 +28,6 @@ import {
   apiGetMeterReadings, apiSubmitMeterReading,
 } from "@/lib/api";
 
-// ─── Seed data for frontend-only features ─────────────────────────────────────
-const SEED_AMC: AMCContract[] = [
-  {
-    id: "amc-001", contractNumber: "AMC/DG/2024-01", title: "DG Set Annual Maintenance",
-    vendorName: "Johnson Controls India Pvt. Ltd.", category: "Mechanical",
-    scope: "Quarterly servicing, emergency call-outs, spare parts (oil, filters)",
-    startDate: "2024-04-01", endDate: "2026-03-31", value: 180000,
-    status: "active", renewalAlertDays: 60,
-    contactPerson: "Rajesh Kumar", contactPhone: "+91 98765 43210", notes: "",
-    createdAt: "2024-04-01T00:00:00Z", updatedAt: "2024-04-01T00:00:00Z",
-  },
-
-  {
-    id: "amc-002", contractNumber: "AMC/LIFT/2024-02", title: "Elevator Maintenance Contract",
-    vendorName: "Schindler India Pvt. Ltd.", category: "Vertical Transport",
-    scope: "Monthly PPM, 24x7 breakdown support, entrapment rescue",
-    startDate: "2024-06-01", endDate: "2026-05-31", value: 240000,
-    status: "active", renewalAlertDays: 60,
-    contactPerson: "Suresh Nair", contactPhone: "+91 99887 76655", notes: "",
-    createdAt: "2024-06-01T00:00:00Z", updatedAt: "2024-06-01T00:00:00Z",
-  },
-
-  {
-    id: "amc-003", contractNumber: "AMC/HVAC/2024-03", title: "HVAC & Chiller Maintenance",
-    vendorName: "Blue Star Ltd.", category: "HVAC",
-    scope: "Monthly filters, quarterly coil cleaning, refrigerant top-up",
-    startDate: "2025-01-01", endDate: "2026-05-15", value: 320000,
-    status: "expiring_soon", renewalAlertDays: 45,
-    contactPerson: "Priya Mehta", contactPhone: "+91 90123 45678", notes: "Renewal quote awaited",
-    createdAt: "2025-01-01T00:00:00Z", updatedAt: "2025-01-01T00:00:00Z",
-  },
-
-  {
-    id: "amc-004", contractNumber: "AMC/FIRE/2024-04", title: "Fire Safety Systems AMC",
-    vendorName: "Minimax India Pvt. Ltd.", category: "Fire Safety",
-    scope: "Monthly inspection, annual hydraulic test, FM200 refill",
-    startDate: "2024-07-01", endDate: "2026-06-30", value: 95000,
-    status: "active", renewalAlertDays: 60,
-    contactPerson: "Anil Desai", contactPhone: "+91 91234 56789", notes: "",
-    createdAt: "2024-07-01T00:00:00Z", updatedAt: "2024-07-01T00:00:00Z",
-  },
-
-  {
-    id: "amc-005", contractNumber: "AMC/BMS/2023-05", title: "BMS & IBMS Support Contract",
-    vendorName: "Honeywell Automation India", category: "IT Infrastructure",
-    scope: "Remote monitoring, on-site support, software license renewal",
-    startDate: "2023-08-01", endDate: "2025-07-31", value: 150000,
-    status: "expired", renewalAlertDays: 30,
-    contactPerson: "Vikram Singh", contactPhone: "+91 88776 65544", notes: "Renewal in discussion",
-    createdAt: "2023-08-01T00:00:00Z", updatedAt: "2023-08-01T00:00:00Z",
-  },
-
-  {
-    id: "amc-006", contractNumber: "AMC/STP/2025-06", title: "STP & WTP Maintenance",
-    vendorName: "Ion Exchange India Ltd.", category: "Water Treatment",
-    scope: "Monthly chemical dosing, quarterly membrane cleaning, lab testing",
-    startDate: "2025-03-01", endDate: "2027-02-28", value: 72000,
-    status: "active", renewalAlertDays: 60,
-    contactPerson: "Deepak Joshi", contactPhone: "+91 77665 54433", notes: "",
-    createdAt: "2025-03-01T00:00:00Z", updatedAt: "2025-03-01T00:00:00Z",
-  },
-
-];
-
-const SEED_DOCS: FMDocument[] = [
-  {
-    id: "doc-001", docNumber: "SOP-001", title: "DG Set Emergency Start Procedure",
-    category: "SOP", version: "v2.1", status: "active",
-    expiryDate: "", uploadedBy: "Admin User", uploadedAt: "2025-01-15",
-    tags: ["DG", "Emergency", "Electrical"], description: "Step-by-step procedure for emergency DG start and load transfer.",
-    createdAt: "2025-01-15T00:00:00Z", updatedAt: "2025-01-15T00:00:00Z",
-  },
-
-  {
-    id: "doc-002", docNumber: "SOP-002", title: "Fire Evacuation & Muster Point Plan",
-    category: "SOP", version: "v3.0", status: "active",
-    expiryDate: "", uploadedBy: "Safety Officer", uploadedAt: "2024-10-01",
-    tags: ["Fire", "Evacuation", "Safety"], description: "Facility evacuation procedure with floor warden assignments.",
-    createdAt: "2024-10-01T00:00:00Z", updatedAt: "2024-10-01T00:00:00Z",
-  },
-
-  {
-    id: "doc-003", docNumber: "CERT-001", title: "Fire NOC Certificate",
-    category: "Certificate", version: "v1.0", status: "active",
-    expiryDate: "2026-09-30", uploadedBy: "Admin User", uploadedAt: "2024-09-30",
-    tags: ["Fire", "NOC", "Compliance"], description: "Fire No-Objection Certificate issued by Fire Department.",
-    createdAt: "2024-09-30T00:00:00Z", updatedAt: "2024-09-30T00:00:00Z",
-  },
-
-  {
-    id: "doc-004", docNumber: "CERT-002", title: "Lift Fitness Certificate",
-    category: "Certificate", version: "v1.0", status: "active",
-    expiryDate: "2026-06-15", uploadedBy: "Admin User", uploadedAt: "2025-06-15",
-    tags: ["Lift", "Elevator", "Compliance"], description: "Annual fitness certificate for all lifts by CMVR authority.",
-    createdAt: "2025-06-15T00:00:00Z", updatedAt: "2025-06-15T00:00:00Z",
-  },
-
-  {
-    id: "doc-005", docNumber: "CERT-003", title: "Electrical Safety Audit Report",
-    category: "Certificate", version: "v1.0", status: "under_review",
-    expiryDate: "2026-03-31", uploadedBy: "Safety Officer", uploadedAt: "2025-03-31",
-    tags: ["Electrical", "Audit", "Safety"], description: "Annual electrical safety audit by certified third-party inspector.",
-    createdAt: "2025-03-31T00:00:00Z", updatedAt: "2025-03-31T00:00:00Z",
-  },
-
-  {
-    id: "doc-006", docNumber: "PERMIT-001", title: "Hot Work Permit Template",
-    category: "Permit", version: "v1.2", status: "active",
-    expiryDate: "", uploadedBy: "Admin User", uploadedAt: "2024-11-01",
-    tags: ["Hot Work", "Welding", "Permit"], description: "Standard permit form for welding/grinding/cutting activities.",
-    createdAt: "2024-11-01T00:00:00Z", updatedAt: "2024-11-01T00:00:00Z",
-  },
-
-  {
-    id: "doc-007", docNumber: "POLICY-001", title: "Health, Safety & Environment Policy",
-    category: "Policy", version: "v4.0", status: "active",
-    expiryDate: "", uploadedBy: "Admin User", uploadedAt: "2025-01-01",
-    tags: ["HSE", "Policy", "Safety"], description: "Organisation-wide HSE policy statement signed by management.",
-    createdAt: "2025-01-01T00:00:00Z", updatedAt: "2025-01-01T00:00:00Z",
-  },
-
-  {
-    id: "doc-008", docNumber: "MANUAL-001", title: "DG Set Operation Manual",
-    category: "Manual", version: "v1.0", status: "active",
-    expiryDate: "", uploadedBy: "Admin User", uploadedAt: "2024-05-01",
-    tags: ["DG", "Manual", "Electrical"], description: "OEM operation and maintenance manual for Cummins 500 kVA DG.",
-    createdAt: "2024-05-01T00:00:00Z", updatedAt: "2024-05-01T00:00:00Z",
-  },
-
-];
-
 // ─── Blank initial state (filled from API after login) ────────────────────────
 const BLANK_USER: User = {
   id: "", name: "", email: "", role: "viewer",
@@ -274,16 +143,27 @@ interface AppContextValue {
   updateInventoryItem: (id: string, body: Record<string, unknown>) => Promise<void>;
   deleteInventoryItem: (id: string) => Promise<void>;
   restockInventoryItem:(id: string, qty: number) => Promise<void>;
-  // Frontend-only CRUD
-  submitChecklist:   (body: Record<string, unknown>) => Promise<void>;
-  submitMeterReading:(body: Record<string, unknown>) => Promise<void>;
-  addAMC:    (body: Record<string, unknown>) => Promise<void>;
-  updateAMC: (id: string, body: Record<string, unknown>) => Promise<void>;
-  addDocument:    (body: Record<string, unknown>) => Promise<void>;
-  updateDocument: (id: string, body: Record<string, unknown>) => Promise<void>;
+  // Module-specific helpers
+  submitChecklist:   (body: Partial<ChecklistSubmission>) => Promise<void>;
+  submitMeterReading:(body: Partial<MeterReading>) => Promise<void>;
+  addAMC:    (body: Partial<AMCContract>) => Promise<void>;
+  updateAMC: (id: string, body: Partial<AMCContract>) => Promise<void>;
+  addDocument:    (body: Partial<FMDocument>) => Promise<void>;
+  updateDocument: (id: string, body: Partial<FMDocument>) => Promise<void>;
   activePage: NavPage;
   navigateTo: (page: NavPage) => void;
   refreshAll: () => Promise<void>;
+  fetchAssets: () => Promise<void>;
+  fetchWorkOrders: () => Promise<void>;
+  fetchVendors: () => Promise<void>;
+  fetchIncidents: () => Promise<void>;
+  fetchInventory: () => Promise<void>;
+  fetchSpaces: () => Promise<void>;
+  fetchMaintenance: () => Promise<void>;
+  fetchAMC: () => Promise<void>;
+  fetchDocuments: () => Promise<void>;
+  fetchChecklists: () => Promise<void>;
+  fetchMeterReadings: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -300,11 +180,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTimeout(() => dispatch({ type: "TOAST_REMOVE", payload: id }), 3500);
   }, []);
 
-  // fetch everything from API and populate state
-  const [activePage, setActivePage] = useState<NavPage>("dashboard");
+  // Persistent activePage
+  const [activePage, setActivePage] = useState<NavPage>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("fm_active_page") as NavPage) || "dashboard";
+    }
+    return "dashboard";
+  });
 
   const navigateTo = useCallback((p: NavPage) => {
     setActivePage(p);
+    localStorage.setItem("fm_active_page", p);
   }, []);
 
   const refreshAll = useCallback(async () => {
@@ -312,17 +198,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const [assets, workOrders, vendors, incidents, inventory, spaces, preventiveMaintenance, amc, docs, check, meter] =
         await Promise.all([
-          apiGetAssets(),
-          apiGetWorkOrders(),
-          apiGetVendors(),
-          apiGetIncidents(),
-          apiGetInventory(),
-          apiGetSpaces(),
-          apiGetMaintenance(),
-          apiGetAMC(),
-          apiGetDocuments(),
-          apiGetChecklists(),
-          apiGetMeterReadings(),
+          apiGetAssets(), apiGetWorkOrders(), apiGetVendors(), apiGetIncidents(),
+          apiGetInventory(), apiGetSpaces(), apiGetMaintenance(), apiGetAMC(),
+          apiGetDocuments(), apiGetChecklists(), apiGetMeterReadings(),
         ]);
       dispatch({ type: "SET_ALL_DATA", payload: {
         assets, workOrders, vendors, incidents, inventory, spaces, preventiveMaintenance,
@@ -335,17 +213,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [toast]);
 
-  // on mount: if token exists, load user + data
+  // Individual fetchers
+  const fetchAssets      = useCallback(async () => { const data = await apiGetAssets();      dispatch({ type: "SET_ALL_DATA", payload: { assets: data }}); }, []);
+  const fetchWorkOrders  = useCallback(async () => { const data = await apiGetWorkOrders();  dispatch({ type: "SET_ALL_DATA", payload: { workOrders: data }}); }, []);
+  const fetchVendors     = useCallback(async () => { const data = await apiGetVendors();     dispatch({ type: "SET_ALL_DATA", payload: { vendors: data }}); }, []);
+  const fetchIncidents   = useCallback(async () => { const data = await apiGetIncidents();   dispatch({ type: "SET_ALL_DATA", payload: { incidents: data }}); }, []);
+  const fetchInventory   = useCallback(async () => { const data = await apiGetInventory();   dispatch({ type: "SET_ALL_DATA", payload: { inventory: data }}); }, []);
+  const fetchSpaces      = useCallback(async () => { const data = await apiGetSpaces();      dispatch({ type: "SET_ALL_DATA", payload: { spaces: data }}); }, []);
+  const fetchMaintenance = useCallback(async () => { const data = await apiGetMaintenance(); dispatch({ type: "SET_ALL_DATA", payload: { preventiveMaintenance: data }}); }, []);
+  const fetchAMC         = useCallback(async () => { const data = await apiGetAMC();         dispatch({ type: "SET_ALL_DATA", payload: { amcContracts: data }}); }, []);
+  const fetchDocuments   = useCallback(async () => { const data = await apiGetDocuments();   dispatch({ type: "SET_ALL_DATA", payload: { documents: data }}); }, []);
+  const fetchChecklists  = useCallback(async () => { const data = await apiGetChecklists();  dispatch({ type: "SET_ALL_DATA", payload: { checklistSubmissions: data }}); }, []);
+  const fetchMeterReadings=useCallback(async () => { const data = await apiGetMeterReadings();dispatch({ type: "SET_ALL_DATA", payload: { meterReadings: data }}); }, []);
+
+  // on mount: if token exists, load user ONLY (lazy load modules when entered)
   useEffect(() => {
     if (!getToken()) return;
     setLoading(true);
     apiGetMe()
       .then((me) => {
         dispatch({ type: "SET_CURRENT_USER", payload: me as User });
-        return refreshAll();
       })
-      .catch(() => { clearToken(); setLoading(false); });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => { clearToken(); })
+      .finally(() => setLoading(false));
   }, []);
 
   // ── Auth ───────────────────────────────────────────────────────────────────
@@ -356,12 +246,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setToken(res.token);
       const me = await apiGetMe();
       dispatch({ type: "SET_CURRENT_USER", payload: me as User });
-      await refreshAll();
     } catch (err) {
-      setLoading(false);
       throw err;
+    } finally {
+      setLoading(false);
     }
-  }, [refreshAll]);
+  }, []);
 
   const logout = useCallback(() => {
     clearToken();
@@ -438,33 +328,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "UPDATE_INVENTORY", payload: item });
   }, []);
 
-  // ── Frontend-only helpers ─────────────────────────────────────────────────
-  const submitChecklist = useCallback(async (body: Record<string, unknown>) => {
+  // ── Module-specific helpers ───────────────────────────────────────────────
+  const submitChecklist = useCallback(async (body: Partial<ChecklistSubmission>) => {
     const sub = await apiSubmitChecklist(body) as ChecklistSubmission;
     dispatch({ type: "ADD_CHECKLIST", payload: sub });
   }, []);
 
-  const submitMeterReading = useCallback(async (body: Record<string, unknown>) => {
+  const submitMeterReading = useCallback(async (body: Partial<MeterReading>) => {
     const reading = await apiSubmitMeterReading(body) as MeterReading;
     dispatch({ type: "ADD_METER_READING", payload: reading });
   }, []);
 
-  const addAMC = useCallback(async (body: Record<string, unknown>) => {
+  const addAMC = useCallback(async (body: Partial<AMCContract>) => {
     const amc = await apiCreateAMC(body) as AMCContract;
     dispatch({ type: "ADD_AMC", payload: amc });
   }, []);
 
-  const updateAMC = useCallback(async (id: string, body: Record<string, unknown>) => {
+  const updateAMC = useCallback(async (id: string, body: Partial<AMCContract>) => {
     const amc = await apiUpdateAMC(id, body) as AMCContract;
     dispatch({ type: "UPDATE_AMC", payload: amc });
   }, []);
 
-  const addDocument = useCallback(async (body: Record<string, unknown>) => {
+  const addDocument = useCallback(async (body: Partial<FMDocument>) => {
     const doc = await apiCreateDocument(body) as FMDocument;
     dispatch({ type: "ADD_DOCUMENT", payload: doc });
   }, []);
 
-  const updateDocument = useCallback(async (id: string, body: Record<string, unknown>) => {
+  const updateDocument = useCallback(async (id: string, body: Partial<FMDocument>) => {
     const doc = await apiUpdateDocument(id, body) as FMDocument;
     dispatch({ type: "UPDATE_DOCUMENT", payload: doc });
   }, []);
@@ -483,6 +373,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addDocument, updateDocument,
       activePage, navigateTo,
       refreshAll,
+      fetchAssets, fetchWorkOrders, fetchVendors, fetchIncidents, fetchInventory,
+      fetchSpaces, fetchMaintenance, fetchAMC, fetchDocuments, fetchChecklists, fetchMeterReadings,
     }}>
       {children}
     </AppContext.Provider>

@@ -48,8 +48,7 @@ const DOC_CATEGORIES: DocCategory[] = ["SOP","Certificate","Permit","Policy","Ma
 const DOC_STATUSES: DocStatus[] = ["active","under_review","expired","archived"];
 
 export function Documents({ search }: { search: string }) {
-  const { state, addDocument, updateDocument, toast } = useApp();
-  const documents = state.documents;
+  const { state, addDocument, updateDocument, toast, fetchDocuments } = useApp();
 
   const [catFilter, setCatFilter] = useState<DocCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<DocStatus | "all">("all");
@@ -59,13 +58,16 @@ export function Documents({ search }: { search: string }) {
   const [form, setForm]             = useState<Partial<FMDocument>>({});
   const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, expired: 0 });
 
-  function loadStats() {
+  const loadStats = () => {
     apiGetDocumentStats().then(s => setStats(s as typeof stats)).catch(console.error);
-  }
+  };
 
   useEffect(() => {
+    fetchDocuments();
     loadStats();
-  }, []);
+  }, [fetchDocuments]);
+
+  const documents = state.documents;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

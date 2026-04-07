@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -19,7 +19,12 @@ const STATUS_COLOR: Record<IncidentStatus, string> = {
 };
 
 export function Incidents({ search }: { search: string }) {
-  const { state, addIncident, updateIncident, toast } = useApp();
+  const { state, addIncident, updateIncident, toast, fetchIncidents } = useApp();
+
+  useEffect(() => {
+    fetchIncidents();
+  }, [fetchIncidents]);
+
   const { canCreate, canDeleteInc } = useRole();
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSeverity, setFilterSeverity] = useState("all");

@@ -5,25 +5,25 @@ import { AppProvider, useApp } from "@/context/AppContext";
 import { Sidebar }       from "@/components/layout/Sidebar";
 import { TopBar }        from "@/components/layout/TopBar";
 import { ToastContainer } from "@/components/ui/Toast";
-import { LoginScreen }   from "@/components/auth/LoginScreen";
+import { LoginScreen }   from "@/app/auth/LoginScreen";
 import { getToken }      from "@/lib/api";
 
 // Module pages
-import { Dashboard }   from "@/components/modules/Dashboard";
-import { Assets }      from "@/components/modules/Assets";
-import { WorkOrders }  from "@/components/modules/WorkOrders";
-import { Maintenance } from "@/components/modules/Maintenance";
-import { Vendors }     from "@/components/modules/Vendors";
-import { Spaces }      from "@/components/modules/Spaces";
-import { Incidents }   from "@/components/modules/Incidents";
-import { Inventory }   from "@/components/modules/Inventory";
-import { Reports }     from "@/components/modules/Reports";
-import { Settings }    from "@/components/modules/Settings";
-import { MyTasks }     from "@/components/modules/MyTasks";
-import { Checklists }  from "@/components/modules/Checklists";
-import { MeterReadings } from "@/components/modules/MeterReadings";
-import { AMC }         from "@/components/modules/AMC";
-import { Documents }   from "@/components/modules/Documents";
+import { Dashboard }   from "@/app/dashboard/Dashboard";
+import { Assets }      from "@/app/assets/Assets";
+import { WorkOrders }  from "@/app/work-orders/WorkOrders";
+import { Maintenance } from "@/app/maintenance/Maintenance";
+import { Vendors }     from "@/app/vendors/Vendors";
+import { Spaces }      from "@/app/spaces/Spaces";
+import { Incidents }   from "@/app/incidents/Incidents";
+import { Inventory }   from "@/app/inventory/Inventory";
+import { Reports }     from "@/app/reports/Reports";
+import { Settings }    from "@/app/settings/Settings";
+import { MyTasks }     from "@/app/tasks/MyTasks";
+import { Checklists }  from "@/app/checklists/Checklists";
+import { MeterReadings } from "@/app/meter-readings/MeterReadings";
+import { AMC }         from "@/app/amc/AMC";
+import { Documents }   from "@/app/documents/Documents";
 
 
 import type { NavPage } from "@/types";

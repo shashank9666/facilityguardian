@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -46,7 +46,12 @@ function computeStatus(endDate: string): AMCStatus {
 }
 
 export function AMC({ search }: { search: string }) {
-  const { state, addAMC, updateAMC, toast } = useApp();
+  const { state, addAMC, updateAMC, toast, fetchAMC } = useApp();
+
+  useEffect(() => {
+    fetchAMC();
+  }, [fetchAMC]);
+
   const contracts = state.amcContracts;
 
   const [filterStatus, setFilterStatus] = useState("all");

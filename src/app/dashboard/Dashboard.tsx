@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
@@ -17,8 +18,12 @@ import {
 } from "recharts";
 
 export function Dashboard() {
-  const { state } = useApp();
+  const { state, refreshAll } = useApp();
   const { assets, workOrders, incidents, inventory, preventiveMaintenance, spaces } = state;
+
+  useEffect(() => {
+    refreshAll();
+  }, [refreshAll]);
 
   // ── KPIs ──
   const totalAssets     = assets.length;

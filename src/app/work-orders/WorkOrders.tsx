@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -20,7 +20,13 @@ const STATUS_COLS: { status: WOStatus; label: string; color: string; bg: string 
 ];
 
 export function WorkOrders({ search }: { search: string }) {
-  const { state, addWorkOrder, updateWorkOrder, toast } = useApp();
+  const { state, addWorkOrder, updateWorkOrder, toast, fetchWorkOrders, fetchAssets } = useApp();
+
+  useEffect(() => {
+    fetchWorkOrders();
+    fetchAssets(); // Often needed for asset selection in work orders
+  }, [fetchWorkOrders, fetchAssets]);
+
   const { canCreate, canDeleteWO } = useRole();
   const [view, setView] = useState<"list"|"kanban">("list");
   const [filterPriority, setFilterPriority] = useState("all");

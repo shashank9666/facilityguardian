@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/Button";
 import { cn, uid } from "@/lib/utils";
@@ -320,7 +320,12 @@ function FieldInput({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export function Checklists() {
-  const { state, submitChecklist, toast } = useApp();
+  const { state, submitChecklist, toast, fetchChecklists } = useApp();
+
+  useEffect(() => {
+    fetchChecklists();
+  }, [fetchChecklists]);
+
   const [catFilter, setCatFilter] = useState<"ALL" | ChecklistCategory>("ALL");
   const [activeTemplate, setActiveTemplate] = useState<ChecklistTemplate | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
