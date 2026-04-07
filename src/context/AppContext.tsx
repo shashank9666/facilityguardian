@@ -26,7 +26,7 @@ import {
   apiGetAMC, apiCreateAMC, apiUpdateAMC, apiDeleteAMC,
   apiGetDocuments, apiCreateDocument, apiUpdateDocument, apiDeleteDocument,
   apiGetChecklists, apiSubmitChecklist,
-  apiGetMeterReadings, apiSubmitMeterReading,
+  apiGetMeterReadings, apiSubmitMeterReading, apiUpdateMeterReading, apiDeleteMeterReading,
 } from "@/lib/api";
 
 // ─── Blank initial state (filled from API after login) ────────────────────────
@@ -66,6 +66,8 @@ type Action =
   | { type: "DELETE_SPACE";           payload: string }
   | { type: "ADD_CHECKLIST";          payload: ChecklistSubmission }
   | { type: "ADD_METER_READING";      payload: MeterReading }
+  | { type: "UPDATE_METER_READING";   payload: MeterReading }
+  | { type: "DELETE_METER_READING";   payload: string }
   | { type: "ADD_AMC";                payload: AMCContract }
   | { type: "UPDATE_AMC";             payload: AMCContract }
   | { type: "ADD_DOCUMENT";           payload: FMDocument }
@@ -115,6 +117,10 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, checklistSubmissions: [action.payload, ...state.checklistSubmissions] };
     case "ADD_METER_READING":
       return { ...state, meterReadings: [action.payload, ...state.meterReadings] };
+    case "UPDATE_METER_READING":
+      return { ...state, meterReadings: state.meterReadings.map(m => m.id === action.payload.id ? action.payload : m) };
+    case "DELETE_METER_READING":
+      return { ...state, meterReadings: state.meterReadings.filter(m => m.id !== action.payload) };
     case "ADD_AMC":
       return { ...state, amcContracts: [action.payload, ...state.amcContracts] };
     case "UPDATE_AMC":
@@ -165,6 +171,8 @@ interface AppContextValue {
   // Module-specific helpers
   submitChecklist:   (body: Partial<ChecklistSubmission>) => Promise<void>;
   submitMeterReading:(body: Partial<MeterReading>) => Promise<void>;
+  updateMeterReading:(id: string, body: Partial<MeterReading>) => Promise<void>;
+  deleteMeterReading:(id: string) => Promise<void>;
   addAMC:    (body: Partial<AMCContract>) => Promise<void>;
   updateAMC: (id: string, body: Partial<AMCContract>) => Promise<void>;
   deleteAMC: (id: string) => Promise<void>;
@@ -184,7 +192,7 @@ interface AppContextValue {
   fetchAMC: () => Promise<void>;
   fetchDocuments: () => Promise<void>;
   fetchChecklists: () => Promise<void>;
-  fetchMeterReadings: () => Promise<void>;
+  fetchMeterReadings: (params?: Record<string, string>) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -256,7 +264,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const fetchAMC         = useCallback(async () => { const data = await apiGetAMC();         dispatch({ type: "SET_ALL_DATA", payload: { amcContracts: data }}); }, []);
   const fetchDocuments   = useCallback(async () => { const data = await apiGetDocuments();   dispatch({ type: "SET_ALL_DATA", payload: { documents: data }}); }, []);
   const fetchChecklists  = useCallback(async () => { const data = await apiGetChecklists();  dispatch({ type: "SET_ALL_DATA", payload: { checklistSubmissions: data }}); }, []);
-  const fetchMeterReadings=useCallback(async () => { const data = await apiGetMeterReadings();dispatch({ type: "SET_ALL_DATA", payload: { meterReadings: data }}); }, []);
+  const fetchMeterReadings = useCallback(async (params?: Record<string, string>) => {
+    const data = await apiGetMeterReadings(params);
+    dispatch({ type: "SET_ALL_DATA", payload: { meterReadings: data } });
+  }, []);
 
   // on mount: if token exists, load user ONLY (lazy load modules when entered)
   useEffect(() => {
@@ -387,6 +398,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "ADD_METER_READING", payload: reading });
   }, []);
 
+  const updateMeterReading = useCallback(async (id: string, body: Partial<MeterReading>) => {
+    const reading = await apiUpdateMeterReading(id, body as Record<string, unknown>) as MeterReading;
+    dispatch({ type: "UPDATE_METER_READING", payload: reading });
+  }, []);
+
+  const deleteMeterReading = useCallback(async (id: string) => {
+    await apiDeleteMeterReading(id);
+    dispatch({ type: "DELETE_METER_READING", payload: id });
+  }, []);
+
   const addAMC = useCallback(async (body: Partial<AMCContract>) => {
     const amc = await apiCreateAMC(body) as AMCContract;
     dispatch({ type: "ADD_AMC", payload: amc });
@@ -427,7 +448,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addSpace, updateSpace, deleteSpace,
       addIncident, updateIncident,
       addInventoryItem, updateInventoryItem, deleteInventoryItem, restockInventoryItem,
-      submitChecklist, submitMeterReading,
+      submitChecklist, submitMeterReading, updateMeterReading, deleteMeterReading,
       addAMC, updateAMC, deleteAMC,
       addDocument, updateDocument, deleteDocument,
       activePage, navigateTo,

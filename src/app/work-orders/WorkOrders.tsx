@@ -225,16 +225,49 @@ export function WorkOrders({ search }: { search: string }) {
       {detailWO && (
         <Modal open={!!detailWO} onClose={()=>setDetailWO(null)} title={detailWO.woNumber} size="lg"
           footer={
-            <div className="flex gap-2 w-full">
+          <div className="flex gap-2 w-full items-center">
               {canCreate && detailWO.status !== "completed" && detailWO.status !== "cancelled" && (
-                <>
-                  {detailWO.status === "open" && <Button variant="primary" size="sm" onClick={()=>{updateStatus(detailWO,"in_progress");setDetailWO(null);}}>Start Work</Button>}
-                  {detailWO.status === "in_progress" && <Button variant="success" size="sm" onClick={()=>{updateStatus(detailWO,"completed");setDetailWO(null);}}>Mark Complete</Button>}
-                  <Button variant="ghost" size="sm" onClick={()=>{updateStatus(detailWO,"on_hold");setDetailWO(null);}}>Hold</Button>
-                </>
+                <div className="flex gap-2 flex-wrap">
+                  {/* open → in_progress */}
+                  {(detailWO.status === "open" || detailWO.status === "assigned") && (
+                    <Button variant="primary" size="sm"
+                      onClick={() => { updateStatus(detailWO, "in_progress"); setDetailWO(null); }}>
+                      ▶ Start Work
+                    </Button>
+                  )}
+                  {/* on_hold → in_progress */}
+                  {detailWO.status === "on_hold" && (
+                    <Button variant="primary" size="sm"
+                      onClick={() => { updateStatus(detailWO, "in_progress"); setDetailWO(null); }}>
+                      ▶ Resume
+                    </Button>
+                  )}
+                  {/* in_progress → completed */}
+                  {detailWO.status === "in_progress" && (
+                    <Button variant="success" size="sm"
+                      onClick={() => { updateStatus(detailWO, "completed"); setDetailWO(null); }}>
+                      ✓ Mark Complete
+                    </Button>
+                  )}
+                  {/* any non-hold state → on_hold */}
+                  {detailWO.status !== "on_hold" && (
+                    <Button variant="ghost" size="sm"
+                      onClick={() => { updateStatus(detailWO, "on_hold"); setDetailWO(null); }}>
+                      ⏸ Hold
+                    </Button>
+                  )}
+                  {/* cancel */}
+                  {canDeleteWO && (
+                    <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 border-red-200"
+                      onClick={() => { updateStatus(detailWO, "cancelled"); setDetailWO(null); }}>
+                      ✕ Cancel
+                    </Button>
+                  )}
+                </div>
               )}
-              <Button variant="secondary" size="sm" className="ml-auto" onClick={()=>setDetailWO(null)}>Close</Button>
+              <Button variant="secondary" size="sm" className="ml-auto" onClick={() => setDetailWO(null)}>Close</Button>
             </div>
+
           }>
           <div className="space-y-4">
             <div className="flex gap-2 flex-wrap">

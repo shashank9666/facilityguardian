@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { cn, uid } from "@/lib/utils";
+import { Modal } from "@/components/ui/Modal";
+import { cn } from "@/lib/utils";
 import type { MeterType, MeterReading } from "@/types";
 import {
-  Activity, TrendingUp, TrendingDown, Plus, X, CheckCircle2,
-  Droplets, Zap, Wind, Clock,
+  Activity, TrendingUp, TrendingDown, Plus, CheckCircle2,
+  Droplets, Zap, Wind, Clock, Pencil, Trash2,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -17,25 +18,13 @@ const METER_DEFS: {
   type: MeterType; label: string; location: string;
   unit: string; icon: React.ReactNode; color: string;
 }[] = [
-  { type: "Electricity-HT", label: "HT Main Meter",       location: "Main LT Panel",   unit: "kWh",  icon: <Zap size={15}/>,      color: "text-amber-600 bg-amber-50" },
-  { type: "Electricity-LT", label: "LT Distribution Board",location: "Ground Floor DB", unit: "kWh",  icon: <Zap size={15}/>,      color: "text-yellow-600 bg-yellow-50" },
-  { type: "Water-Main",     label: "Water Main Supply",    location: "Pump House",       unit: "m³",   icon: <Droplets size={15}/>, color: "text-blue-600 bg-blue-50" },
-  { type: "Water-Garden",   label: "Garden Water Meter",   location: "Landscape Area",   unit: "m³",   icon: <Droplets size={15}/>, color: "text-cyan-600 bg-cyan-50" },
-  { type: "DG-Runtime",     label: "DG Runtime Hours",     location: "DG Room",          unit: "hrs",  icon: <Activity size={15}/>, color: "text-orange-600 bg-orange-50" },
-  { type: "STP-Flow",       label: "STP Inlet Flow",       location: "STP Plant",        unit: "m³/d", icon: <Wind size={15}/>,     color: "text-violet-600 bg-violet-50" },
+  { type: "Electricity-HT", label: "HT Main Meter",        location: "Main LT Panel",   unit: "kWh",  icon: <Zap size={15}/>,      color: "text-amber-600 bg-amber-50" },
+  { type: "Electricity-LT", label: "LT Distribution Board", location: "Ground Floor DB", unit: "kWh",  icon: <Zap size={15}/>,      color: "text-yellow-600 bg-yellow-50" },
+  { type: "Water-Main",     label: "Water Main Supply",     location: "Pump House",       unit: "m³",   icon: <Droplets size={15}/>, color: "text-blue-600 bg-blue-50" },
+  { type: "Water-Garden",   label: "Garden Water Meter",    location: "Landscape Area",   unit: "m³",   icon: <Droplets size={15}/>, color: "text-cyan-600 bg-cyan-50" },
+  { type: "DG-Runtime",     label: "DG Runtime Hours",      location: "DG Room",          unit: "hrs",  icon: <Activity size={15}/>, color: "text-orange-600 bg-orange-50" },
+  { type: "STP-Flow",       label: "STP Inlet Flow",        location: "STP Plant",        unit: "m³/d", icon: <Wind size={15}/>,     color: "text-violet-600 bg-violet-50" },
 ];
-
-// Build last 7 readings chart data for a given meter type
-function buildChartData(readings: MeterReading[], type: MeterType) {
-  return readings
-    .filter(r => r.meterType === type)
-    .sort((a, b) => a.readingDate.localeCompare(b.readingDate))
-    .slice(-7)
-    .map(r => ({
-      date: r.readingDate.slice(5), // MM-DD
-      consumption: r.consumption,
-    }));
-}
 
 const TYPE_BADGE: Record<string, string> = {
   "Electricity-HT": "bg-amber-50 text-amber-700 border-amber-200",
@@ -47,44 +36,69 @@ const TYPE_BADGE: Record<string, string> = {
   "Other":          "bg-slate-100 text-slate-600 border-slate-200",
 };
 
-export function MeterReadings() {
-  const { state, submitMeterReading, toast, fetchMeterReadings } = useApp();
+interface ReadingForm {
+  meterType: MeterType;
+  previousReading: string;
+  currentReading: string;
+  notes: string;
+  readingDate: string;
+}
 
-  useEffect(() => {
-    fetchMeterReadings();
-  }, [fetchMeterReadings]);
+const BLANK_FORM: ReadingForm = {
+  meterType: "Electricity-HT",
+  previousReading: "",
+  currentReading: "",
+  notes: "",
+  readingDate: new Date().toISOString().slice(0, 10),
+};
+
+export function MeterReadings() {
+  const { state, submitMeterReading, updateMeterReading, deleteMeterReading, toast, fetchMeterReadings } = useApp();
+
+  // ── Server-side filter ────────────────────────────────────────────────────
+  const [filterType, setFilterType] = useState<MeterType | "all">("all");
+
+  const load = useCallback(() => {
+    const params: Record<string, string> = {};
+    if (filterType !== "all") params.meterType = filterType;
+    fetchMeterReadings(params);
+  }, [filterType, fetchMeterReadings]);
+
+  useEffect(() => { load(); }, [load]);
 
   const readings = state.meterReadings;
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState<{
-    meterType: MeterType;
-    previousReading: string;
-    currentReading: string;
-    notes: string;
-    readingDate: string;
-  }>({
-    meterType: "Electricity-HT",
-    previousReading: "",
-    currentReading: "",
-    notes: "",
-    readingDate: new Date().toISOString().slice(0, 10),
-  });
-  const [saving, setSaving] = useState(false);
+  // ── Form / Edit ────────────────────────────────────────────────────────────
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing]     = useState<MeterReading | null>(null);
+  const [form, setForm]           = useState<ReadingForm>(BLANK_FORM);
+  const [saving, setSaving]       = useState(false);
 
   const selectedMeter = METER_DEFS.find(m => m.type === form.meterType)!;
-  const prev    = parseFloat(form.previousReading) || 0;
-  const current = parseFloat(form.currentReading) || 0;
-  const consumption = Math.max(0, current - prev);
+  const prev          = parseFloat(form.previousReading) || 0;
+  const current       = parseFloat(form.currentReading) || 0;
+  const consumption   = Math.max(0, current - prev);
 
-  // Last reading for selected meter (auto-fill previous)
-  const lastReading = useMemo(() =>
-    readings
-      .filter(r => r.meterType === form.meterType)
-      .sort((a, b) => b.readingDate.localeCompare(a.readingDate))[0],
-  [readings, form.meterType]);
+  function openAdd() {
+    setForm(BLANK_FORM);
+    setEditing(null);
+    setModalOpen(true);
+  }
+
+  function openEdit(r: MeterReading) {
+    setForm({
+      meterType:       r.meterType,
+      previousReading: String(r.previousReading),
+      currentReading:  String(r.currentReading),
+      notes:           r.notes,
+      readingDate:     r.readingDate,
+    });
+    setEditing(r);
+    setModalOpen(true);
+  }
 
   function handleMeterChange(type: MeterType) {
+    if (editing) return; // don't auto-fill when editing
     const last = readings
       .filter(r => r.meterType === type)
       .sort((a, b) => b.readingDate.localeCompare(a.readingDate))[0];
@@ -95,41 +109,63 @@ export function MeterReadings() {
     }));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!form.currentReading) { toast("Enter current reading", "error"); return; }
-    if (current < prev) { toast("Current reading cannot be less than previous reading", "error"); return; }
+    if (!editing && current < prev) { toast("Current reading cannot be less than previous reading", "error"); return; }
     setSaving(true);
-    setTimeout(() => {
+    try {
       const meter = METER_DEFS.find(m => m.type === form.meterType)!;
-      const reading: MeterReading = {
-        id: uid(),
-        meterType: form.meterType,
-        meterName: meter.label,
-        location: meter.location,
-        unit: meter.unit,
+      const payload = {
+        meterType:       form.meterType,
+        meterName:       meter.label,
+        location:        meter.location,
+        unit:            meter.unit,
         previousReading: prev,
-        currentReading: current,
-        consumption,
-        readingDate: form.readingDate,
-        submittedBy: state.currentUser.name,
-        notes: form.notes,
+        currentReading:  current,
+        consumption:     editing ? Math.max(0, current - prev) : consumption,
+        readingDate:     form.readingDate,
+        submittedBy:     state.currentUser.name,
+        notes:           form.notes,
       };
-      submitMeterReading(reading);
-      toast("Meter reading submitted", "success");
-      setFormOpen(false);
-      setForm({ meterType: "Electricity-HT", previousReading: "", currentReading: "", notes: "", readingDate: new Date().toISOString().slice(0, 10) });
+      if (editing) {
+        await updateMeterReading(editing.id, payload);
+        toast("Reading updated", "success");
+      } else {
+        await submitMeterReading(payload);
+        toast("Meter reading submitted", "success");
+      }
+      setModalOpen(false);
+      setForm(BLANK_FORM);
+      setEditing(null);
+    } catch (err) {
+      toast((err as Error).message ?? "Failed to save reading", "error");
+    } finally {
       setSaving(false);
-    }, 500);
+    }
   }
 
-  // Stats
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this meter reading?")) return;
+    try {
+      await deleteMeterReading(id);
+      toast("Reading deleted", "success");
+    } catch (err) {
+      toast((err as Error).message ?? "Failed to delete", "error");
+    }
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
   const today      = new Date().toISOString().slice(0, 10);
   const todayCount = readings.filter(r => r.readingDate === today).length;
   const totalKwh   = readings.filter(r => r.meterType === "Electricity-HT").reduce((s, r) => s + r.consumption, 0);
-  const totalWater = readings.filter(r => r.meterType === "Electricity-HT" || r.meterType === "Water-Main").reduce((s, r) => r.meterType === "Water-Main" ? s + r.consumption : s, 0);
+  const totalWater = readings.filter(r => r.meterType === "Water-Main").reduce((s, r) => s + r.consumption, 0);
 
-  // Chart data for HT meter
-  const chartData = buildChartData(readings, "Electricity-HT");
+  // Chart (HT Electricity last 7)
+  const chartData = readings
+    .filter(r => r.meterType === "Electricity-HT")
+    .sort((a, b) => a.readingDate.localeCompare(b.readingDate))
+    .slice(-7)
+    .map(r => ({ date: r.readingDate.slice(5), consumption: r.consumption }));
 
   return (
     <div className="space-y-5">
@@ -137,9 +173,9 @@ export function MeterReadings() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Meter Readings</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Log daily utility consumption readings.</p>
+          <p className="text-slate-500 text-sm mt-0.5">Log and manage daily utility consumption readings.</p>
         </div>
-        <Button variant="primary" leftIcon={<Plus size={14}/>} onClick={() => setFormOpen(true)}>
+        <Button variant="primary" leftIcon={<Plus size={14}/>} onClick={openAdd}>
           Log Reading
         </Button>
       </div>
@@ -147,10 +183,10 @@ export function MeterReadings() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: "Logged Today",      val: todayCount,                    icon: <Clock size={18}/>,       color: "text-indigo-600 bg-indigo-50" },
-          { label: "Total Readings",    val: readings.length,               icon: <Activity size={18}/>,   color: "text-blue-600 bg-blue-50" },
-          { label: "Total kWh (HT)",    val: totalKwh.toLocaleString(),      icon: <Zap size={18}/>,        color: "text-amber-600 bg-amber-50" },
-          { label: "Water Usage (m³)",  val: totalWater.toFixed(1),          icon: <Droplets size={18}/>,   color: "text-cyan-600 bg-cyan-50" },
+          { label: "Logged Today",     val: todayCount,               icon: <Clock size={18}/>,     color: "text-indigo-600 bg-indigo-50" },
+          { label: "Total Readings",   val: readings.length,          icon: <Activity size={18}/>,  color: "text-blue-600 bg-blue-50" },
+          { label: "Total kWh (HT)",   val: totalKwh.toLocaleString(),icon: <Zap size={18}/>,       color: "text-amber-600 bg-amber-50" },
+          { label: "Water Usage (m³)", val: totalWater.toFixed(1),    icon: <Droplets size={18}/>,  color: "text-cyan-600 bg-cyan-50" },
         ].map(k => (
           <div key={k.label} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${k.color}`}>{k.icon}</div>
@@ -163,7 +199,7 @@ export function MeterReadings() {
       {/* Meter overview cards */}
       <div className="grid grid-cols-3 gap-3">
         {METER_DEFS.map(m => {
-          const last = readings.filter(r => r.meterType === m.type).sort((a, b) => b.readingDate.localeCompare(a.readingDate))[0];
+          const last  = readings.filter(r => r.meterType === m.type).sort((a, b) => b.readingDate.localeCompare(a.readingDate))[0];
           const prev2 = readings.filter(r => r.meterType === m.type).sort((a, b) => b.readingDate.localeCompare(a.readingDate))[1];
           const trend = last && prev2 ? (last.consumption > prev2.consumption ? "up" : "down") : null;
           return (
@@ -201,18 +237,32 @@ export function MeterReadings() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
-              <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(v) => [`${v} kWh`, "Consumption"]}/>
+              <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={v => [`${v} kWh`, "Consumption"]}/>
               <Area type="monotone" dataKey="consumption" stroke="#f59e0b" fill="#fef3c7" strokeWidth={2}/>
             </AreaChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* History table */}
+      {/* Filter + History table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <div className="text-[14px] font-bold text-slate-800">Reading History</div>
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+          <div className="text-[14px] font-bold text-slate-800 flex-1">Reading History</div>
+          {/* Meter type filter — calls backend */}
+          <div className="flex gap-1.5 flex-wrap">
+            <button onClick={() => setFilterType("all")}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${filterType === "all" ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-500 border-slate-200"}`}>
+              All
+            </button>
+            {METER_DEFS.map(m => (
+              <button key={m.type} onClick={() => setFilterType(m.type)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${filterType === m.type ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-500 border-slate-200"}`}>
+                {m.label}
+              </button>
+            ))}
+          </div>
         </div>
+
         {readings.length === 0 ? (
           <div className="py-16 text-center text-slate-400 text-sm">
             <Activity size={28} className="mx-auto mb-2 opacity-30"/>
@@ -223,14 +273,14 @@ export function MeterReadings() {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
-                  {["Date","Meter","Location","Previous","Current","Consumption","By"].map(h => (
+                  {["Date","Meter","Location","Previous","Current","Consumption","By",""].map(h => (
                     <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {readings.slice().sort((a, b) => b.readingDate.localeCompare(a.readingDate)).map(r => (
-                  <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={r.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-4 py-3 font-medium text-slate-700">{r.readingDate}</td>
                     <td className="px-4 py-3">
                       <Badge className={TYPE_BADGE[r.meterType] ?? TYPE_BADGE.Other}>{r.meterName}</Badge>
@@ -243,6 +293,14 @@ export function MeterReadings() {
                       <span className="text-slate-400 ml-1 text-[11px]">{r.unit}</span>
                     </td>
                     <td className="px-4 py-3 text-slate-500">{r.submittedBy}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openEdit(r)} title="Edit"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"><Pencil size={13}/></button>
+                        <button onClick={() => handleDelete(r.id)} title="Delete"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 size={13}/></button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -251,106 +309,76 @@ export function MeterReadings() {
         )}
       </div>
 
-      {/* Add Reading Modal */}
-      {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-lg mx-4 shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div className="text-[16px] font-bold text-slate-800">Log Meter Reading</div>
-              <button onClick={() => setFormOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">
-                <X size={16}/>
-              </button>
-            </div>
-
-            <div className="px-6 py-4 space-y-4">
-              {/* Meter selector */}
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Meter</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {METER_DEFS.map(m => (
-                    <button
-                      key={m.type}
-                      onClick={() => handleMeterChange(m.type)}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left text-[12px] font-medium transition-all",
-                        form.meterType === m.type
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
-                      )}>
-                      <span>{m.icon}</span>
-                      <span className="truncate">{m.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {/* Date */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Date</label>
-                  <input type="date" value={form.readingDate} onChange={e => setForm(p => ({...p, readingDate: e.target.value}))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400"/>
-                </div>
-                {/* Unit display */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Unit</label>
-                  <div className="px-3 py-2 border border-slate-100 rounded-lg text-sm bg-slate-50 text-slate-500">
-                    {selectedMeter.unit}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {/* Previous reading */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                    Previous Reading
-                    {lastReading && <span className="text-indigo-500 ml-1 normal-case font-normal">(auto-filled)</span>}
-                  </label>
-                  <input type="number" value={form.previousReading} onChange={e => setForm(p => ({...p, previousReading: e.target.value}))}
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400"/>
-                </div>
-                {/* Current reading */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Current Reading *</label>
-                  <input type="number" value={form.currentReading} onChange={e => setForm(p => ({...p, currentReading: e.target.value}))}
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400"/>
-                </div>
-              </div>
-
-              {/* Consumption preview */}
-              {form.currentReading && (
-                <div className={cn(
-                  "flex items-center justify-between px-4 py-3 rounded-xl",
-                  consumption >= 0 ? "bg-indigo-50 border border-indigo-100" : "bg-red-50 border border-red-100"
-                )}>
-                  <div className="text-[12px] font-semibold text-slate-700">Consumption</div>
-                  <div className={cn("text-[16px] font-extrabold", consumption >= 0 ? "text-indigo-700" : "text-red-600")}>
-                    {consumption.toFixed(2)} {selectedMeter.unit}
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Notes</label>
-                <input value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))}
-                  placeholder="Optional notes..."
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400"/>
-              </div>
-            </div>
-
-            <div className="flex gap-3 px-6 py-4 border-t border-slate-100">
-              <Button variant="secondary" className="flex-1" onClick={() => setFormOpen(false)}>Cancel</Button>
-              <Button variant="primary" className="flex-1 bg-indigo-600 hover:bg-indigo-700" loading={saving} leftIcon={<CheckCircle2 size={14}/>} onClick={handleSubmit}>
-                Submit Reading
-              </Button>
+      {/* Add / Edit Modal */}
+      <Modal open={modalOpen} onClose={() => { setModalOpen(false); setForm(BLANK_FORM); setEditing(null); }}
+        title={editing ? "Edit Meter Reading" : "Log Meter Reading"}
+        footer={<>
+          <Button variant="secondary" onClick={() => { setModalOpen(false); setForm(BLANK_FORM); setEditing(null); }}>Cancel</Button>
+          <Button variant="primary" loading={saving} leftIcon={<CheckCircle2 size={14}/>} onClick={handleSubmit}>
+            {editing ? "Save Changes" : "Submit Reading"}
+          </Button>
+        </>}>
+        <div className="space-y-4">
+          {/* Meter selector */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Meter</label>
+            <div className="grid grid-cols-2 gap-2">
+              {METER_DEFS.map(m => (
+                <button key={m.type} onClick={() => handleMeterChange(m.type)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left text-[12px] font-medium transition-all",
+                    form.meterType === m.type ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                  )}>
+                  <span>{m.icon}</span>
+                  <span className="truncate">{m.label}</span>
+                </button>
+              ))}
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Date</label>
+              <input type="date" value={form.readingDate} onChange={e => setForm(p => ({ ...p, readingDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400"/>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Unit</label>
+              <div className="px-3 py-2 border border-slate-100 rounded-lg text-sm bg-slate-50 text-slate-500">{selectedMeter?.unit}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Previous Reading</label>
+              <input type="number" value={form.previousReading} onChange={e => setForm(p => ({ ...p, previousReading: e.target.value }))}
+                placeholder="0" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400"/>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Current Reading *</label>
+              <input type="number" value={form.currentReading} onChange={e => setForm(p => ({ ...p, currentReading: e.target.value }))}
+                placeholder="0" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400"/>
+            </div>
+          </div>
+
+          {form.currentReading && (
+            <div className={cn("flex items-center justify-between px-4 py-3 rounded-xl",
+              consumption >= 0 ? "bg-indigo-50 border border-indigo-100" : "bg-red-50 border border-red-100")}>
+              <div className="text-[12px] font-semibold text-slate-700">Consumption</div>
+              <div className={cn("text-[16px] font-extrabold", consumption >= 0 ? "text-indigo-700" : "text-red-600")}>
+                {consumption.toFixed(2)} {selectedMeter?.unit}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Notes</label>
+            <input value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+              placeholder="Optional notes..."
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400"/>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
