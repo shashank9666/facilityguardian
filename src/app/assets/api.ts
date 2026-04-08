@@ -1,8 +1,7 @@
-import { request, norm } from "@/lib/api/client";
+import { request, norm, toQueryString } from "@/lib/api/client";
 
 export async function apiGetAssets(params?: Record<string, string>) {
-  const qs = params ? "?" + new URLSearchParams(params) : "";
-  const res = await request<{ data: unknown[] }>(`/assets${qs}`);
+  const res = await request<{ data: unknown[] }>(`/assets${toQueryString(params)}`);
   return res.data.map(norm);
 }
 

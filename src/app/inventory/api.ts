@@ -1,7 +1,7 @@
-import { request, norm } from "@/lib/api/client";
+import { request, norm, toQueryString } from "@/lib/api/client";
 
-export async function apiGetInventory() {
-  const res = await request<{ data: unknown[] }>("/inventory");
+export async function apiGetInventory(f: any = {}) {
+  const res = await request<{ data: unknown[] }>(`/inventory${toQueryString(f)}`);
   return res.data.map(norm);
 }
 

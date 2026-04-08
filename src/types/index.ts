@@ -25,6 +25,16 @@ export interface User {
   department: string;
   avatar?: string;
   active: boolean;
+  notificationPreferences: {
+    workOrderAssigned: boolean;
+    pmScheduleDue: boolean;
+    incidentReported: boolean;
+    lowStockAlert: boolean;
+    assetStatusChange: boolean;
+    vendorContractExpiry: boolean;
+    workOrderOverdue: boolean;
+    dailySummary: boolean;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +57,7 @@ export interface Asset {
   nextMaintenance: string;
   value: number;
   assignedTo?: string;
+  department: string;
   notes: string;
   tags: string[];
   createdAt: string;
@@ -156,6 +167,8 @@ export interface Incident {
   reportedAt: string;
   assignedTo?: string;
   resolvedAt?: string;
+  assetId?: string;
+  assetName?: string;
   category: string;
   timeline: AuditEntry[];
   createdAt: string;
@@ -208,11 +221,14 @@ export interface AppState {
   spaces: Space[];
   incidents: Incident[];
   inventory: InventoryItem[];
+  users: User[];
   toasts: Toast[];
   checklistSubmissions: ChecklistSubmission[];
   meterReadings: MeterReading[];
   amcContracts: AMCContract[];
   documents: FMDocument[];
+  technicians: User[];
+  notifications: FmNotification[];
 }
 
 // ─── Checklist Types ───────────────────────────────────────────────────────────
@@ -226,7 +242,7 @@ export interface ChecklistField {
   value?: string;
   required?: boolean;
   unit?: string;
-  options?: string[];         // for type "options" — rendered as button group
+  options?: string[];
 }
 
 export interface ChecklistTemplate {
@@ -313,20 +329,17 @@ export interface FMDocument {
   updatedAt: string;
 }
 
+export interface FmNotification {
+  id: string;
+  type: "info" | "warning" | "error" | "success";
+  title: string;
+  message: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
 export type NavPage =
-  | "dashboard"
-  | "assets"
-  | "work-orders"
-  | "maintenance"
-  | "vendors"
-  | "spaces"
-  | "incidents"
-  | "inventory"
-  | "reports"
-  | "settings"
-  | "my-tasks"
-  | "checklists"
-  | "meter-readings"
-  | "amc"
-  | "documents";
+  | "dashboard" | "assets" | "work-orders" | "maintenance" | "vendors"
+  | "spaces" | "incidents" | "inventory" | "reports" | "settings"
+  | "my-tasks" | "checklists" | "meter-readings" | "amc" | "documents" | "notifications";

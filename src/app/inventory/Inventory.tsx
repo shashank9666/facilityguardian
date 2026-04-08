@@ -35,15 +35,10 @@ export function Inventory({ search }: { search: string }) {
 
   useEffect(() => {
     loadStats();
-    fetchInventory();
-  }, [fetchInventory]);
+    fetchInventory({ q: search, status: filterStatus === "all" ? "" : filterStatus });
+  }, [fetchInventory, search, filterStatus]);
 
-  const filtered = useMemo(() => state.inventory.filter(i => {
-    const q = search.toLowerCase();
-    const matchQ = !q || i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q);
-    const matchS = filterStatus === "all" || i.status === filterStatus;
-    return matchQ && matchS;
-  }), [state.inventory, search, filterStatus]);
+  const filtered = state.inventory;
 
   async function handleRestock() {
     const item = state.inventory.find(i => i.id === restockId);
@@ -68,7 +63,7 @@ export function Inventory({ search }: { search: string }) {
   return (
     <div className="space-y-4">
       {/* KPI Row */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label:"Total Items",   value: stats.total, bg:"bg-blue-50",   icon:"📦" },
           { label:"In Stock",      value: stats.in_stock,     bg:"bg-green-50",  icon:"✅" },

@@ -1,7 +1,7 @@
-import { request, norm } from "@/lib/api/client";
+import { request, norm, toQueryString } from "@/lib/api/client";
 
-export async function apiGetWorkOrders() {
-  const res = await request<{ data: unknown[] }>("/work-orders");
+export async function apiGetWorkOrders(filters: any = {}) {
+  const res = await request<{ data: unknown[] }>(`/work-orders${toQueryString(filters)}`);
   return res.data.map(norm);
 }
 

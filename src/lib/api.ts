@@ -19,3 +19,4 @@ export * from "../app/reports/api";
 export * from "../app/settings/api";
 export * from "../app/tasks/api";
 export * from "../app/dashboard/api";
+export * from "../app/notifications/api";

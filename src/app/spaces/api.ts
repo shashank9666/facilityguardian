@@ -1,7 +1,7 @@
-import { request, norm } from "@/lib/api/client";
+import { request, norm, toQueryString } from "@/lib/api/client";
 
-export async function apiGetSpaces() {
-  const res = await request<{ data: unknown[] }>("/spaces");
+export async function apiGetSpaces(filters: any = {}) {
+  const res = await request<{ data: unknown[] }>(`/spaces${toQueryString(filters)}`);
   return res.data.map(norm);
 }
 

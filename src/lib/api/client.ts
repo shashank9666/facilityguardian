@@ -3,6 +3,15 @@
 
 export const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001/api";
 
+export function toQueryString(params?: Record<string, any>) {
+  if (!params) return "";
+  const filtered = Object.entries(params)
+    .filter(([_, v]) => v !== undefined && v !== null && v !== "" && v !== "All")
+    .reduce((acc, [k, v]) => ({ ...acc, [k]: String(v) }), {});
+  const qs = new URLSearchParams(filtered).toString();
+  return qs ? `?${qs}` : "";
+}
+
 // ── Token storage ─────────────────────────────────────────────────────────────
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;

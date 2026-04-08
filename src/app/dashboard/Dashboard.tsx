@@ -149,7 +149,7 @@ export function Dashboard() {
       )}
 
       {/* ── KPI Row ── */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard label="Total Assets"     value={totalAssets}
           icon="🏗️" iconBg="bg-blue-50"
           sub={`${faultyAssets} faulty`}
@@ -178,7 +178,7 @@ export function Dashboard() {
       </div>
 
       {/* ── Row 2: Charts ── */}
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* WO 7-day trend */}
         <Card className="col-span-2">
           <CardHeader title={<><Activity size={14} className="inline mr-1.5"/>Work Order Trend — Last 7 Days</>} />
@@ -226,7 +226,7 @@ export function Dashboard() {
       </div>
 
       {/* ── Row 3: Asset Health + Quick Stats ── */}
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Asset Health */}
         <Card>
           <CardHeader title={<><Box size={14} className="inline mr-1.5"/>Asset Health</>}/>
@@ -298,7 +298,7 @@ export function Dashboard() {
       </div>
 
       {/* ── Row 4: Recent Work Orders + Activity Feed ── */}
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Recent Work Orders */}
         <Card>
           <CardHeader title="Recent Work Orders" subtitle="Latest 5 work orders"/>

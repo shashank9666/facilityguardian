@@ -21,10 +21,6 @@ const STATUS_COLOR: Record<IncidentStatus, string> = {
 export function Incidents({ search }: { search: string }) {
   const { state, addIncident, updateIncident, toast, fetchIncidents } = useApp();
 
-  useEffect(() => {
-    fetchIncidents();
-  }, [fetchIncidents]);
-
   const { canCreate, canDeleteInc } = useRole();
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSeverity, setFilterSeverity] = useState("all");
@@ -32,16 +28,35 @@ export function Incidents({ search }: { search: string }) {
   const [detailInc, setDetailInc] = useState<Incident | null>(null);
   const [form, setForm] = useState<Partial<Incident>>({});
 
-  const filtered = useMemo(() => state.incidents.filter(i => {
-    const q = search.toLowerCase();
-    const matchQ = !q || i.title.toLowerCase().includes(q) || i.incidentNumber.toLowerCase().includes(q);
-    const matchS = filterStatus === "all" || i.status === filterStatus;
-    const matchV = filterSeverity === "all" || i.severity === filterSeverity;
-    return matchQ && matchS && matchV;
-  }), [state.incidents, search, filterStatus, filterSeverity]);
+  useEffect(() => {
+    fetchIncidents({
+      q: search,
+      status: filterStatus === "all" ? "" : filterStatus,
+      severity: filterSeverity === "all" ? "" : filterSeverity,
+    });
+  }, [fetchIncidents, search, filterStatus, filterSeverity]);
+
+  const filtered = state.incidents;
 
   async function handleAdd() {
     if (!form.title?.trim()) return;
+    if (!form.description?.trim()) {
+      toast("Description is mandatory", "error");
+      return;
+    }
+
+    // Duplicate check: Same title and location within last 5 mins (TC_ALERT_03)
+    const fiveMinsAgo = new Date(Date.now() - 5 * 60000);
+    const isDup = state.incidents.some(i =>
+      i.title.toLowerCase() === form.title?.toLowerCase() &&
+      i.location.toLowerCase() === (form.location || "").toLowerCase() &&
+      new Date(i.createdAt) > fiveMinsAgo
+    );
+    if (isDup) {
+      toast("A similar incident was recently reported", "warning");
+      return;
+    }
+
     try {
       await addIncident({
         title: sanitize(form.title!), description: sanitize(form.description || ""),
@@ -157,9 +172,13 @@ export function Incidents({ search }: { search: string }) {
             </select>
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Description</label>
-            <textarea value={form.description||""} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={3}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 resize-none"/>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Description *</label>
+            <textarea
+              required
+              value={form.description||""} onChange={e=>setForm(p=>({...p,description:e.target.value}))} rows={3}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 resize-none"
+              placeholder="Detailed description of the incident"
+            />
           </div>
         </div>
       </Modal>

@@ -4,25 +4,9 @@ import { Bell, Search, RefreshCw, LogOut, AlertTriangle, Package, Clock, X } fro
 import { useApp } from "@/context/AppContext";
 import type { NavPage } from "@/types";
 import { cn, daysUntil, timeAgo } from "@/lib/utils";
+import { titleMap } from "@/lib/titleMap";
 import { useState, useEffect, useRef } from "react";
 
-const PAGE_META: Record<NavPage, { title: string; subtitle: string }> = {
-  dashboard:    { title: "Dashboard",             subtitle: "Facility overview & KPIs" },
-  assets:       { title: "Asset Management",      subtitle: "Track and manage facility assets" },
-  "work-orders":{ title: "Work Orders",           subtitle: "Corrective & preventive maintenance tasks" },
-  maintenance:  { title: "Preventive Maintenance",subtitle: "Scheduled maintenance plans" },
-  vendors:      { title: "Vendor Management",     subtitle: "Contractors, suppliers & SLAs" },
-  spaces:       { title: "Space Management",      subtitle: "Occupancy & floor plan tracking" },
-  incidents:    { title: "Incident Management",   subtitle: "Report and resolve facility incidents" },
-  inventory:    { title: "Inventory",             subtitle: "Spare parts & consumables stock" },
-  reports:      { title: "Reports & Analytics",   subtitle: "Insights and performance metrics" },
-  settings:     { title: "Settings",              subtitle: "Users, roles & system configuration" },
-  "my-tasks":   { title: "My Tasks",              subtitle: "Your personal task list & assignments" },
-  checklists:   { title: "Checklists & Surveys",  subtitle: "Facility inspections & SOP audits" },
-  "meter-readings": { title: "Meter Readings",    subtitle: "Utility consumption & energy tracking" },
-  amc:          { title: "AMC Contracts",         subtitle: "Annual Maintenance Contracts & renewals" },
-  documents:    { title: "Document Library",      subtitle: "Digital SOPs, manuals & certificates" },
-};
 
 
 interface TopBarProps {
@@ -31,11 +15,12 @@ interface TopBarProps {
   onSearch: (v: string) => void;
   onRefresh: () => void;
   onLogout: () => void;
+  navigateTo: (p: NavPage) => void;
 }
 
-export function TopBar({ activePage, search, onSearch, onRefresh, onLogout }: TopBarProps) {
-  const { state } = useApp();
-  const meta = PAGE_META[activePage];
+export function TopBar({ activePage, search, onSearch, onRefresh, onLogout, navigateTo }: TopBarProps) {
+  const { state, markNotificationRead } = useApp();
+  const meta = titleMap[activePage] || { title: activePage, subtitle: "" };
   const [dateStr, setDateStr] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -57,32 +42,23 @@ export function TopBar({ activePage, search, onSearch, onRefresh, onLogout }: To
     return () => document.removeEventListener("mousedown", handler);
   }, [notifOpen]);
 
-  // Build notifications
-  type Notif = { id: string; icon: React.ReactNode; title: string; sub: string; color: string; time?: string };
-  const notifications: Notif[] = [
-    ...state.incidents.filter(i => i.status === "reported").map(i => ({
-      id: i.id, color: "text-amber-600 bg-amber-50",
-      icon: <AlertTriangle size={13}/>,
-      title: `New Incident: ${i.title}`,
-      sub: `${i.severity} severity · ${i.incidentNumber}`,
-      time: i.reportedAt,
-    })),
-    ...state.workOrders.filter(w => w.status !== "completed" && daysUntil(w.dueDate) < 0).map(w => ({
-      id: w.id, color: "text-red-600 bg-red-50",
-      icon: <Clock size={13}/>,
-      title: `Overdue: ${w.title}`,
-      sub: `${Math.abs(daysUntil(w.dueDate))}d past due · ${w.woNumber}`,
-      time: w.dueDate,
-    })),
-    ...state.inventory.filter(i => i.status !== "in_stock").map(i => ({
-      id: i.id, color: "text-violet-600 bg-violet-50",
-      icon: <Package size={13}/>,
-      title: `${i.status === "out_of_stock" ? "Out of stock" : "Low stock"}: ${i.name}`,
-      sub: `${i.quantity} ${i.unit} remaining · ${i.code}`,
-    })),
-  ].slice(0, 12);
+  // Use global notifications from backend
+  const notifications = state.notifications.map(n => ({
+    id: n.id,
+    color: n.type === "error" ? "text-red-600 bg-red-50" :
+           n.type === "warning" ? "text-amber-600 bg-amber-50" :
+           n.type === "success" ? "text-green-600 bg-green-50" :
+           "text-blue-600 bg-blue-50",
+    icon: n.type === "error" ? <X size={13}/> :
+          n.type === "warning" ? <AlertTriangle size={13}/> :
+          <Bell size={13}/>,
+    title: n.title,
+    sub: n.message,
+    time: n.createdAt,
+    isRead: n.isRead
+  })).slice(0, 12);
 
-  const unreadCount = notifications.length;
+  const unreadCount = state.notifications.filter(n => !n.isRead).length;
 
   return (
     <header className="h-[60px] bg-white border-b border-slate-200 flex items-center px-6 gap-4 flex-shrink-0 z-20 shadow-[0_1px_0_rgba(0,0,0,.04)]">
@@ -154,7 +130,14 @@ export function TopBar({ activePage, search, onSearch, onRefresh, onLogout }: To
             ) : (
               <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-50">
                 {notifications.map(n => (
-                  <div key={n.id} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50/60 transition-colors">
+                  <div key={n.id} 
+                    onClick={() => {
+                      if (!n.isRead) markNotificationRead(n.id);
+                    }}
+                    className={cn(
+                      "flex items-start gap-3 px-4 py-3 hover:bg-slate-50/60 transition-colors cursor-pointer",
+                      !n.isRead && "bg-blue-50/20"
+                    )}>
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${n.color}`}>
                       {n.icon}
                     </div>
@@ -169,9 +152,12 @@ export function TopBar({ activePage, search, onSearch, onRefresh, onLogout }: To
             )}
 
             <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/50">
-              <p className="text-[11px] text-slate-400 text-center">
-                {notifications.length > 0 ? `${notifications.length} active alert${notifications.length>1?"s":""} requiring attention` : "No active alerts"}
-              </p>
+               <button
+                onClick={() => { setNotifOpen(false); navigateTo("notifications"); }}
+                className="w-full text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-wider"
+              >
+                View all notifications
+              </button>
             </div>
           </div>
         )}

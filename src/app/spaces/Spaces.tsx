@@ -28,20 +28,28 @@ const SPACE_STATUSES: SpaceStatus[] = ["available", "occupied", "maintenance", "
 export function Spaces({ search }: { search: string }) {
   const { state, addSpace, updateSpace, deleteSpace, toast, fetchSpaces } = useApp();
 
-  useEffect(() => { fetchSpaces(); }, [fetchSpaces]);
-
   const { canManageSpaces } = useRole();
-
-  const [filterSite,   setFilterSite]   = useState("all");
-  const [filterFloor,  setFilterFloor]  = useState("all");
+  const [filterSite, setFilterSite] = useState("all");
+  const [filterFloor, setFilterFloor] = useState("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [modalOpen, setModalOpen]       = useState(false);
-  const [editing, setEditing]           = useState<Space | null>(null);
-  const [form, setForm]                 = useState<Partial<Space>>({});
-  const [saving, setSaving]             = useState(false);
-  const [detailSpace, setDetailSpace]   = useState<Space | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Space | null>(null);
+  const [form, setForm] = useState<Partial<Space>>({});
+  const [saving, setSaving] = useState(false);
+  const [detailSpace, setDetailSpace] = useState<Space | null>(null);
 
-  // Derive unique sites & floors
+  useEffect(() => {
+    fetchSpaces({
+      q: search,
+      status: filterStatus === "all" ? "" : filterStatus,
+      site: filterSite === "all" ? "" : filterSite,
+      floor: filterFloor === "all" ? "" : filterFloor,
+    });
+  }, [fetchSpaces, search, filterStatus, filterSite, filterFloor]);
+
+  const filtered = state.spaces;
+
+  // For dropdowns, we can still derive from state.spaces (or have another fetch)
   const sites = useMemo(() =>
     [...new Set(state.spaces.map(s => s.site || "Main Campus"))].sort(),
   [state.spaces]);
@@ -50,15 +58,6 @@ export function Spaces({ search }: { search: string }) {
     const src = filterSite === "all" ? state.spaces : state.spaces.filter(s => (s.site || "Main Campus") === filterSite);
     return [...new Set(src.map(s => s.floor))].sort();
   }, [state.spaces, filterSite]);
-
-  const filtered = useMemo(() => state.spaces.filter(s => {
-    const q = search.toLowerCase();
-    const siteName = s.site || "Main Campus";
-    return (!q || s.name.toLowerCase().includes(q) || siteName.toLowerCase().includes(q))
-      && (filterSite   === "all" || siteName === filterSite)
-      && (filterFloor  === "all" || s.floor  === filterFloor)
-      && (filterStatus === "all" || s.status === filterStatus);
-  }), [state.spaces, search, filterSite, filterFloor, filterStatus]);
 
   const bySite = useMemo(() => {
     const map = new Map<string, Space[]>();
@@ -331,9 +330,16 @@ export function Spaces({ search }: { search: string }) {
           </div>
           <div className="col-span-2">
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Assigned To</label>
-            <input value={form.assignedTo || ""} onChange={e => setForm(p => ({ ...p, assignedTo: e.target.value }))}
-              placeholder="Person or team responsible"
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"/>
+            <select
+              value={form.assignedTo || ""}
+              onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+            >
+              <option value="">Select Manager / Responsible Person</option>
+              {state.technicians.map((u) => (
+                <option key={u.id} value={u.name}>{u.name} ({u.role})</option>
+              ))}
+            </select>
           </div>
         </div>
       </Modal>

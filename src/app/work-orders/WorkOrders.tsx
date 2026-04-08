@@ -20,12 +20,7 @@ const STATUS_COLS: { status: WOStatus; label: string; color: string; bg: string 
 ];
 
 export function WorkOrders({ search }: { search: string }) {
-  const { state, addWorkOrder, updateWorkOrder, toast, fetchWorkOrders, fetchAssets } = useApp();
-
-  useEffect(() => {
-    fetchWorkOrders();
-    fetchAssets(); // Often needed for asset selection in work orders
-  }, [fetchWorkOrders, fetchAssets]);
+  const { state, addWorkOrder, updateWorkOrder, toast, fetchWorkOrders, fetchAssets, fetchTechnicians } = useApp();
 
   const { canCreate, canDeleteWO } = useRole();
   const [view, setView] = useState<"list"|"kanban">("list");
@@ -35,13 +30,17 @@ export function WorkOrders({ search }: { search: string }) {
   const [detailWO, setDetailWO] = useState<WorkOrder | null>(null);
   const [form, setForm] = useState<Partial<WorkOrder & {assetName: string}>>({});
 
-  const filtered = useMemo(() => state.workOrders.filter(w => {
-    const q = search.toLowerCase();
-    const matchQ = !q || w.title.toLowerCase().includes(q) || w.woNumber.toLowerCase().includes(q) || w.location.toLowerCase().includes(q);
-    const matchP = filterPriority === "all" || w.priority === filterPriority;
-    const matchT = filterType === "all" || w.type === filterType;
-    return matchQ && matchP && matchT;
-  }), [state.workOrders, search, filterPriority, filterType]);
+  useEffect(() => {
+    fetchWorkOrders({
+      q: search,
+      priority: filterPriority === "all" ? "" : filterPriority,
+      type: filterType === "all" ? "" : filterType,
+    });
+    fetchAssets();
+    fetchTechnicians();
+  }, [fetchWorkOrders, fetchAssets, fetchTechnicians, search, filterPriority, filterType]);
+
+  const filtered = state.workOrders;
 
   async function handleAdd() {
     if (!form.title?.trim()) return;
@@ -217,6 +216,19 @@ export function WorkOrders({ search }: { search: string }) {
               <input type="number" value={form.estimatedHours||""} onChange={e=>setForm(p=>({...p,estimatedHours:+e.target.value}))}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" min={0.5} step={0.5}/>
             </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Assigned To</label>
+              <select
+                value={form.assignedTo || ""}
+                onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"
+              >
+                <option value="">Select Technician</option>
+                {state.technicians.map(u => (
+                  <option key={u.id} value={u.name}>{u.name} ({u.role})</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </Modal>
@@ -228,10 +240,37 @@ export function WorkOrders({ search }: { search: string }) {
           <div className="flex gap-2 w-full items-center">
               {canCreate && detailWO.status !== "completed" && detailWO.status !== "cancelled" && (
                 <div className="flex gap-2 flex-wrap">
+                  {/* Transition to Assigned if unassigned */}
+                  {!detailWO.assignedTo && detailWO.status === "open" && (
+                    <div className="flex items-center gap-2">
+                       <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            updateWorkOrder(detailWO.id, { assignedTo: e.target.value, status: "assigned" });
+                            setDetailWO(null);
+                          }
+                        }}
+                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white outline-none"
+                      >
+                        <option value="">Assign To...</option>
+                        {state.technicians.map(u => (
+                          <option key={u.id} value={u.name}>{u.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* open → in_progress */}
                   {(detailWO.status === "open" || detailWO.status === "assigned") && (
                     <Button variant="primary" size="sm"
-                      onClick={() => { updateStatus(detailWO, "in_progress"); setDetailWO(null); }}>
+                      onClick={() => {
+                        if (!detailWO.assignedTo) {
+                          toast("Please assign a technician first", "warning");
+                          return;
+                        }
+                        updateStatus(detailWO, "in_progress");
+                        setDetailWO(null);
+                      }}>
                       ▶ Start Work
                     </Button>
                   )}

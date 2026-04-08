@@ -1,7 +1,7 @@
-import { request, norm } from "@/lib/api/client";
+import { request, norm, toQueryString } from "@/lib/api/client";
 
-export async function apiGetAMC() {
-  const res = await request<{ data: unknown[] }>("/amc");
+export async function apiGetAMC(filters: any = {}) {
+  const res = await request<{ data: unknown[] }>(`/amc${toQueryString(filters)}`);
   return res.data.map(norm);
 }
 

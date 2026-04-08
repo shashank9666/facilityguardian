@@ -1,7 +1,7 @@
-import { request, norm } from "@/lib/api/client";
+import { request, norm, toQueryString } from "@/lib/api/client";
 
-export async function apiGetVendors() {
-  const res = await request<{ data: unknown[] }>("/vendors");
+export async function apiGetVendors(filters: any = {}) {
+  const res = await request<{ data: unknown[] }>(`/vendors${toQueryString(filters)}`);
   return res.data.map(norm);
 }
 

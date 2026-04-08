@@ -10,39 +10,54 @@ import React, {
 } from "react";
 import type {
   AppState, Toast, Asset, WorkOrder, InventoryItem, Incident, Vendor, Space, User,
-  ChecklistSubmission, MeterReading, AMCContract, FMDocument, NavPage,
+  ChecklistSubmission, MeterReading, AMCContract, FMDocument, NavPage, PreventiveMaintenance, FmNotification,
 } from "@/types";
 import { uid } from "@/lib/utils";
 import {
   getToken, setToken, clearToken,
-  apiLogin, apiGetMe,
+  apiLogin, apiGetMe, apiGetUsers, apiGetTechnicians,
   apiGetAssets, apiCreateAsset, apiUpdateAsset, apiDeleteAsset,
   apiGetWorkOrders, apiCreateWorkOrder, apiUpdateWorkOrder, apiDeleteWorkOrder,
   apiGetIncidents, apiCreateIncident, apiUpdateIncident,
   apiGetInventory, apiCreateInventoryItem, apiUpdateInventoryItem, apiDeleteInventoryItem, apiRestockItem,
   apiGetVendors, apiCreateVendor, apiUpdateVendor,
   apiGetSpaces, apiCreateSpace, apiUpdateSpace, apiDeleteSpace,
-  apiGetMaintenance,
+  apiGetMaintenance, apiCreateMaintenance, apiUpdateMaintenance, apiDeleteMaintenance,
   apiGetAMC, apiCreateAMC, apiUpdateAMC, apiDeleteAMC,
   apiGetDocuments, apiCreateDocument, apiUpdateDocument, apiDeleteDocument,
   apiGetChecklists, apiSubmitChecklist,
   apiGetMeterReadings, apiSubmitMeterReading, apiUpdateMeterReading, apiDeleteMeterReading,
+  apiGetNotifications, apiMarkNotificationRead, apiMarkAllNotificationsRead,
 } from "@/lib/api";
 
 // ─── Blank initial state (filled from API after login) ────────────────────────
 const BLANK_USER: User = {
   id: "", name: "", email: "", role: "viewer",
-  department: "", active: true, createdAt: "", updatedAt: "",
+  department: "", active: true,
+  notificationPreferences: {
+    workOrderAssigned: true,
+    pmScheduleDue: true,
+    incidentReported: true,
+    lowStockAlert: true,
+    assetStatusChange: false,
+    vendorContractExpiry: true,
+    workOrderOverdue: true,
+    dailySummary: false,
+  },
+  createdAt: "", updatedAt: "",
 };
 
 const BLANK_STATE: AppState = {
   currentUser: BLANK_USER,
   assets: [], workOrders: [], preventiveMaintenance: [],
-  vendors: [], spaces: [], incidents: [], inventory: [], toasts: [],
+  vendors: [], spaces: [],  incidents: [], inventory: [], toasts: [],
+  users: [],
   checklistSubmissions: [],
   meterReadings: [],
   amcContracts: [],
   documents: [],
+  technicians: [],
+  notifications: [],
 };
 
 // ─── Actions ───────────────────────────────────────────────────────────────────
@@ -74,6 +89,16 @@ type Action =
   | { type: "UPDATE_DOCUMENT";        payload: FMDocument }
   | { type: "DELETE_DOCUMENT";        payload: string }
   | { type: "DELETE_AMC";             payload: string }
+  | { type: "SET_USERS";               payload: User[] }
+  | { type: "SET_TECHNICIANS";         payload: User[] }
+  | { type: "ADD_USER";                payload: User }
+  | { type: "UPDATE_USER";             payload: User }
+  | { type: "DELETE_USER";             payload: string }
+  | { type: "ADD_PM";                   payload: PreventiveMaintenance }
+  | { type: "UPDATE_PM";                payload: PreventiveMaintenance }
+  | { type: "DELETE_PM";                payload: string }
+  | { type: "SET_NOTIFICATIONS";        payload: FmNotification[] }
+  | { type: "UPDATE_NOTIFICATION";     payload: FmNotification }
   | { type: "TOAST_ADD";              payload: Omit<Toast, "id"> }
   | { type: "TOAST_REMOVE";           payload: string };
 
@@ -121,6 +146,16 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, meterReadings: state.meterReadings.map(m => m.id === action.payload.id ? action.payload : m) };
     case "DELETE_METER_READING":
       return { ...state, meterReadings: state.meterReadings.filter(m => m.id !== action.payload) };
+    case "ADD_PM":
+      return { ...state, preventiveMaintenance: [action.payload, ...state.preventiveMaintenance] };
+    case "UPDATE_PM":
+      return { ...state, preventiveMaintenance: state.preventiveMaintenance.map(p => p.id === action.payload.id ? action.payload : p) };
+    case "DELETE_PM":
+      return { ...state, preventiveMaintenance: state.preventiveMaintenance.filter(p => p.id !== action.payload) };
+    case "SET_NOTIFICATIONS":
+      return { ...state, notifications: action.payload };
+    case "UPDATE_NOTIFICATION":
+      return { ...state, notifications: state.notifications.map(n => n.id === action.payload.id ? action.payload : n) };
     case "ADD_AMC":
       return { ...state, amcContracts: [action.payload, ...state.amcContracts] };
     case "UPDATE_AMC":
@@ -137,6 +172,16 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, toasts: [...state.toasts, { id: uid(), ...action.payload }] };
     case "TOAST_REMOVE":
       return { ...state, toasts: state.toasts.filter(t => t.id !== action.payload) };
+    case "SET_USERS":
+      return { ...state, users: action.payload };
+    case "SET_TECHNICIANS":
+      return { ...state, technicians: action.payload };
+    case "ADD_USER":
+      return { ...state, users: [action.payload, ...state.users] };
+    case "UPDATE_USER":
+      return { ...state, users: state.users.map(u => u.id === action.payload.id ? action.payload : u) };
+    case "DELETE_USER":
+      return { ...state, users: state.users.filter(u => u.id !== action.payload) };
     default:
       return state;
   }
@@ -147,6 +192,9 @@ interface AppContextValue {
   state: AppState;
   dispatch: React.Dispatch<Action>;
   loading: boolean;
+  fetchNotifications: () => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
   toast: (msg: string, type?: Toast["type"]) => void;
   // Auth
   login:  (email: string, password: string) => Promise<void>;
@@ -164,6 +212,9 @@ interface AppContextValue {
   deleteSpace: (id: string) => Promise<void>;
   addIncident:    (body: Record<string, unknown>) => Promise<void>;
   updateIncident: (id: string, body: Record<string, unknown>) => Promise<void>;
+  addMaintenance:    (body: any) => Promise<void>;
+  updateMaintenance: (id: string, body: any) => Promise<void>;
+  deleteMaintenance: (id: string) => Promise<void>;
   addInventoryItem:    (body: Record<string, unknown>) => Promise<void>;
   updateInventoryItem: (id: string, body: Record<string, unknown>) => Promise<void>;
   deleteInventoryItem: (id: string) => Promise<void>;
@@ -182,17 +233,23 @@ interface AppContextValue {
   activePage: NavPage;
   navigateTo: (page: NavPage) => void;
   refreshAll: () => Promise<void>;
-  fetchAssets: () => Promise<void>;
-  fetchWorkOrders: () => Promise<void>;
-  fetchVendors: () => Promise<void>;
-  fetchIncidents: () => Promise<void>;
-  fetchInventory: () => Promise<void>;
-  fetchSpaces: () => Promise<void>;
-  fetchMaintenance: () => Promise<void>;
-  fetchAMC: () => Promise<void>;
-  fetchDocuments: () => Promise<void>;
-  fetchChecklists: () => Promise<void>;
-  fetchMeterReadings: (params?: Record<string, string>) => Promise<void>;
+  fetchAssets: (p?: any) => Promise<void>;
+  fetchWorkOrders: (p?: any) => Promise<void>;
+  fetchVendors: (p?: any) => Promise<void>;
+  fetchIncidents: (p?: any) => Promise<void>;
+  fetchInventory: (p?: any) => Promise<void>;
+  fetchSpaces: (p?: any) => Promise<void>;
+  fetchMaintenance: (p?: any) => Promise<void>;
+  fetchAMC: (p?: any) => Promise<void>;
+  fetchDocuments: (p?: any) => Promise<void>;
+  fetchChecklists: (p?: any) => Promise<void>;
+  fetchMeterReadings: (p?: any) => Promise<void>;
+  fetchUsers: (p?: any) => Promise<void>;
+  fetchTechnicians: (p?: any) => Promise<void>;
+  addUser: (body: any) => Promise<void>;
+  updateUser: (id: string, body: any) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
+  updateMe: (body: any) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -212,6 +269,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Robust activePage initialization with SSR safety
   const [activePage, setActivePage] = useState<NavPage>(() => {
     if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const m = params.get("m") as NavPage;
+      if (m) return m;
+
       const saved = localStorage.getItem("fm_active_page") as NavPage;
       if (saved) return saved;
     }
@@ -221,6 +282,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const navigateTo = useCallback((p: NavPage) => {
     setActivePage(p);
     localStorage.setItem("fm_active_page", p);
+
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("m", p);
+      window.history.pushState({}, "", url.toString());
+    }
   }, []);
 
   // Ensure activePage stay sync'd on client switch/hydrate
@@ -232,41 +299,74 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []); // Only once on mount
 
   const refreshAll = useCallback(async () => {
-    // Only show full page spinner if we don't have a user yet (initial load)
     const isInitial = !state.currentUser.id;
     if (isInitial) setLoading(true);
+
     try {
-      const [assets, workOrders, vendors, incidents, inventory, spaces, preventiveMaintenance, amc, docs, check, meter] =
-        await Promise.all([
-          apiGetAssets(), apiGetWorkOrders(), apiGetVendors(), apiGetIncidents(),
-          apiGetInventory(), apiGetSpaces(), apiGetMaintenance(), apiGetAMC(),
-          apiGetDocuments(), apiGetChecklists(), apiGetMeterReadings(),
-        ]);
+      const safeFetch = async <T,>(fn: () => Promise<T>, defaultValue: T): Promise<T> => {
+        try { return await fn(); } catch (err) {
+          console.error(`Fetch failed:`, err);
+          return defaultValue;
+        }
+      };
+
+      const [
+        assets, workOrders, vendors, incidents, inventory, spaces, 
+        pm, amc, docs, check, meter, users, techs
+      ] = await Promise.all([
+        safeFetch(apiGetAssets, []),
+        safeFetch(apiGetWorkOrders, []),
+        safeFetch(apiGetVendors, []),
+        safeFetch(apiGetIncidents, []),
+        safeFetch(apiGetInventory, []),
+        safeFetch(apiGetSpaces, []),
+        safeFetch(apiGetMaintenance, []),
+        safeFetch(apiGetAMC, []),
+        safeFetch(apiGetDocuments, []),
+        safeFetch(apiGetChecklists, []),
+        safeFetch(apiGetMeterReadings, []),
+        safeFetch(apiGetUsers, []),
+        safeFetch(apiGetTechnicians, [])
+      ]);
+
       dispatch({ type: "SET_ALL_DATA", payload: {
-        assets, workOrders, vendors, incidents, inventory, spaces, preventiveMaintenance,
-        amcContracts: amc, documents: docs, checklistSubmissions: check, meterReadings: meter,
-      }});
+        assets, workOrders, vendors, incidents, inventory, spaces,
+        preventiveMaintenance: pm, amcContracts: amc, documents: docs,
+        checklistSubmissions: check, meterReadings: meter,
+        users: users as User[], technicians: techs as User[]
+      } });
+
     } catch (err) {
-      toast((err as Error).message ?? "Failed to load data", "error");
+      toast("An unexpected error occurred while loading data", "error");
     } finally {
       setLoading(false);
     }
   }, [toast, state.currentUser.id]);
 
   // Individual fetchers
-  const fetchAssets      = useCallback(async () => { const data = await apiGetAssets();      dispatch({ type: "SET_ALL_DATA", payload: { assets: data }}); }, []);
-  const fetchWorkOrders  = useCallback(async () => { const data = await apiGetWorkOrders();  dispatch({ type: "SET_ALL_DATA", payload: { workOrders: data }}); }, []);
-  const fetchVendors     = useCallback(async () => { const data = await apiGetVendors();     dispatch({ type: "SET_ALL_DATA", payload: { vendors: data }}); }, []);
-  const fetchIncidents   = useCallback(async () => { const data = await apiGetIncidents();   dispatch({ type: "SET_ALL_DATA", payload: { incidents: data }}); }, []);
-  const fetchInventory   = useCallback(async () => { const data = await apiGetInventory();   dispatch({ type: "SET_ALL_DATA", payload: { inventory: data }}); }, []);
-  const fetchSpaces      = useCallback(async () => { const data = await apiGetSpaces();      dispatch({ type: "SET_ALL_DATA", payload: { spaces: data }}); }, []);
-  const fetchMaintenance = useCallback(async () => { const data = await apiGetMaintenance(); dispatch({ type: "SET_ALL_DATA", payload: { preventiveMaintenance: data }}); }, []);
-  const fetchAMC         = useCallback(async () => { const data = await apiGetAMC();         dispatch({ type: "SET_ALL_DATA", payload: { amcContracts: data }}); }, []);
-  const fetchDocuments   = useCallback(async () => { const data = await apiGetDocuments();   dispatch({ type: "SET_ALL_DATA", payload: { documents: data }}); }, []);
-  const fetchChecklists  = useCallback(async () => { const data = await apiGetChecklists();  dispatch({ type: "SET_ALL_DATA", payload: { checklistSubmissions: data }}); }, []);
-  const fetchMeterReadings = useCallback(async (params?: Record<string, string>) => {
-    const data = await apiGetMeterReadings(params);
-    dispatch({ type: "SET_ALL_DATA", payload: { meterReadings: data } });
+  const fetchAssets      = useCallback(async (p?: any) => { const data = await apiGetAssets(p);      dispatch({ type: "SET_ALL_DATA", payload: { assets: data }}); }, []);
+  const fetchWorkOrders  = useCallback(async (p?: any) => { const data = await apiGetWorkOrders(p);  dispatch({ type: "SET_ALL_DATA", payload: { workOrders: data }}); }, []);
+  const fetchVendors     = useCallback(async (p?: any) => { const data = await apiGetVendors(p);     dispatch({ type: "SET_ALL_DATA", payload: { vendors: data }}); }, []);
+  const fetchIncidents   = useCallback(async (p?: any) => { const data = await apiGetIncidents(p);   dispatch({ type: "SET_ALL_DATA", payload: { incidents: data }}); }, []);
+  const fetchInventory   = useCallback(async (p?: any) => { const data = await apiGetInventory(p);   dispatch({ type: "SET_ALL_DATA", payload: { inventory: data }}); }, []);
+  const fetchSpaces      = useCallback(async (p?: any) => { const data = await apiGetSpaces(p);      dispatch({ type: "SET_ALL_DATA", payload: { spaces: data }}); }, []);
+  const fetchMaintenance = useCallback(async (p?: any) => { const data = await apiGetMaintenance(p); dispatch({ type: "SET_ALL_DATA", payload: { preventiveMaintenance: data }}); }, []);
+  const fetchAMC         = useCallback(async (p?: any) => { const data = await apiGetAMC(p);         dispatch({ type: "SET_ALL_DATA", payload: { amcContracts: data }}); }, []);
+  const fetchDocuments   = useCallback(async (p?: any) => { const data = await apiGetDocuments(p);   dispatch({ type: "SET_ALL_DATA", payload: { documents: data }}); }, []);
+  const fetchChecklists  = useCallback(async (p?: any) => { const data = await apiGetChecklists(p);  dispatch({ type: "SET_ALL_DATA", payload: { checklistSubmissions: data }}); }, []);
+  const fetchMeterReadings = useCallback(async (p?: any) => { const data = await apiGetMeterReadings(p); dispatch({ type: "SET_ALL_DATA", payload: { meterReadings: data }}); }, []);
+  const fetchUsers = useCallback(async (p?: any) => {
+    try {
+      const data = await apiGetUsers(p);
+      dispatch({ type: "SET_USERS", payload: data as User[] });
+    } catch {}
+  }, []);
+
+  const fetchTechnicians = useCallback(async () => {
+    try {
+      const data = await apiGetTechnicians();
+      dispatch({ type: "SET_TECHNICIANS", payload: data as User[] });
+    } catch {}
   }, []);
 
   // on mount: if token exists, load user ONLY (lazy load modules when entered)
@@ -283,7 +383,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   const login = useCallback(async (email: string, password: string) => {
-    setLoading(true);
+    // We don't set global loading here to prevent unmounting LoginScreen
+    // if it's shown in page.tsx based on the loading state.
     try {
       const res = await apiLogin(email, password);
       setToken(res.token);
@@ -291,8 +392,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "SET_CURRENT_USER", payload: me as User });
     } catch (err) {
       throw err;
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -300,6 +399,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearToken();
     dispatch({ type: "SET_ALL_DATA", payload: BLANK_STATE });
   }, []);
+
+  // ── Session Timeout (TC_AUTH_04) ───────────────────────────────────────────
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      if (getToken()) {
+        timeout = setTimeout(() => {
+          logout();
+          toast("Session expired due to inactivity", "info");
+        }, INACTIVITY_LIMIT);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("mousemove", resetTimer);
+      window.addEventListener("keypress", resetTimer);
+      window.addEventListener("click", resetTimer);
+      window.addEventListener("scroll", resetTimer);
+      resetTimer();
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keypress", resetTimer);
+      window.removeEventListener("click", resetTimer);
+      window.removeEventListener("scroll", resetTimer);
+    };
+  }, [logout, toast]);
 
   // ── Asset helpers ─────────────────────────────────────────────────────────
   const addAsset = useCallback(async (body: Record<string, unknown>) => {
@@ -364,6 +495,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateIncident = useCallback(async (id: string, body: Record<string, unknown>) => {
     const inc = await apiUpdateIncident(id, body) as Incident;
     dispatch({ type: "UPDATE_INCIDENT", payload: inc });
+  }, []);
+
+  // ── PM helpers ─────────────────────────────────────────────────────────────
+  const addMaintenance = useCallback(async (body: any) => {
+    const pm = await apiCreateMaintenance(body) as PreventiveMaintenance;
+    dispatch({ type: "ADD_PM", payload: pm });
+  }, []);
+
+  const updateMaintenance = useCallback(async (id: string, body: any) => {
+    const pm = await apiUpdateMaintenance(id, body) as PreventiveMaintenance;
+    dispatch({ type: "UPDATE_PM", payload: pm });
+  }, []);
+
+  const deleteMaintenance = useCallback(async (id: string) => {
+    await apiDeleteMaintenance(id);
+    dispatch({ type: "DELETE_PM", payload: id });
   }, []);
 
   // ── Inventory helpers ─────────────────────────────────────────────────────
@@ -438,6 +585,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "DELETE_AMC", payload: id });
   }, []);
 
+  const fetchNotifications = useCallback(async () => {
+    const data = await apiGetNotifications();
+    dispatch({ type: "SET_NOTIFICATIONS", payload: data });
+  }, []);
+
+  const markNotificationRead = useCallback(async (id: string) => {
+    const data = await apiMarkNotificationRead(id);
+    dispatch({ type: "UPDATE_NOTIFICATION", payload: data });
+  }, []);
+
+  const markAllNotificationsRead = useCallback(async () => {
+    await apiMarkAllNotificationsRead();
+    const data = await apiGetNotifications();
+    dispatch({ type: "SET_NOTIFICATIONS", payload: data });
+  }, []);
+
+  const addUser = useCallback(async (body: any) => {
+    const { apiRegister } = await import("@/lib/api");
+    const res = await apiRegister(body);
+    dispatch({ type: "ADD_USER", payload: res.data as User });
+    toast("User created successfully", "success");
+  }, [toast]);
+
+  const updateUser = useCallback(async (id: string, body: any) => {
+    const { apiUpdateUser } = await import("@/lib/api");
+    const res = await apiUpdateUser(id, body);
+    dispatch({ type: "UPDATE_USER", payload: res as User });
+    toast("User updated", "success");
+  }, [toast]);
+
+  const deleteUser = useCallback(async (id: string) => {
+    const { apiDeleteUser } = await import("@/lib/api");
+    await apiDeleteUser(id);
+    dispatch({ type: "DELETE_USER", payload: id });
+    toast("User removed", "success");
+  }, [toast]);
+
+  const updateMe = useCallback(async (body: any) => {
+    const { apiUpdateMe } = await import("@/lib/api");
+    const res = await apiUpdateMe(body);
+    dispatch({ type: "SET_CURRENT_USER", payload: res as User });
+    toast("Settings updated", "success");
+  }, [toast]);
+
   return (
     <AppContext.Provider value={{
       state, dispatch, loading, toast,
@@ -447,6 +638,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addVendor, updateVendor,
       addSpace, updateSpace, deleteSpace,
       addIncident, updateIncident,
+      addMaintenance, updateMaintenance, deleteMaintenance,
       addInventoryItem, updateInventoryItem, deleteInventoryItem, restockInventoryItem,
       submitChecklist, submitMeterReading, updateMeterReading, deleteMeterReading,
       addAMC, updateAMC, deleteAMC,
@@ -455,6 +647,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       refreshAll,
       fetchAssets, fetchWorkOrders, fetchVendors, fetchIncidents, fetchInventory,
       fetchSpaces, fetchMaintenance, fetchAMC, fetchDocuments, fetchChecklists, fetchMeterReadings,
+      fetchNotifications, markNotificationRead, markAllNotificationsRead,
+      fetchUsers, fetchTechnicians, addUser, updateUser, deleteUser, updateMe,
     }}>
       {children}
     </AppContext.Provider>

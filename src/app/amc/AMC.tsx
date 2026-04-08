@@ -48,26 +48,18 @@ function computeStatus(endDate: string): AMCStatus {
 export function AMC({ search }: { search: string }) {
   const { state, addAMC, updateAMC, deleteAMC, toast, fetchAMC } = useApp();
 
-  useEffect(() => {
-    fetchAMC();
-  }, [fetchAMC]);
-
   const contracts = state.amcContracts;
-
   const [filterStatus, setFilterStatus] = useState("all");
-  const [modalOpen, setModalOpen]   = useState(false);
-  const [editing, setEditing]       = useState<AMCContract | null>(null);
-  const [saving, setSaving]         = useState(false);
-  const [form, setForm]             = useState<Partial<AMCContract>>({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<AMCContract | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<Partial<AMCContract>>({});
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return contracts.filter(c => {
-      const matchQ = !q || c.title.toLowerCase().includes(q) || c.vendorName.toLowerCase().includes(q) || c.category.toLowerCase().includes(q);
-      const matchS = filterStatus === "all" || c.status === filterStatus;
-      return matchQ && matchS;
-    });
-  }, [contracts, search, filterStatus]);
+  useEffect(() => {
+    fetchAMC({ q: search, status: filterStatus === "all" ? "" : filterStatus });
+  }, [fetchAMC, search, filterStatus]);
+
+  const filtered = state.amcContracts;
 
   function openAdd() {
     setForm({

@@ -18,7 +18,43 @@ export async function apiGetMe() {
   return norm(res.data);
 }
 
-export async function apiGetUsers() {
-  const res = await request<{ data: unknown[] }>("/auth/users");
+export async function apiGetUsers(f: any = {}) {
+  const q = new URLSearchParams(f).toString();
+  const res = await request<{ data: unknown[] }>(`/auth/users${q ? `?${q}` : ""}`);
   return res.data.map(norm);
+}
+
+export async function apiGetTechnicians(f: any = {}) {
+  const q = new URLSearchParams(f).toString();
+  const res = await request<{ data: unknown[] }>(`/auth/technicians${q ? `?${q}` : ""}`);
+  return res.data.map(norm);
+}
+
+export async function apiRegister(body: any) {
+  return await request<{ success: boolean; data: unknown }>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiUpdateUser(id: string, body: any) {
+  const res = await request<{ data: unknown }>(`/auth/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+  return norm(res.data);
+}
+
+export async function apiDeleteUser(id: string) {
+  return await request<{ success: boolean }>(`/auth/users/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function apiUpdateMe(body: any) {
+  const res = await request<{ data: unknown }>("/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+  return norm(res.data);
 }

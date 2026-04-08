@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Badge } from "@/components/ui/Badge";
 import { cn, daysUntil } from "@/lib/utils";
-import type { WOStatus } from "@/types";
+import type { WOStatus, WorkOrder } from "@/types";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
 import {
   ClipboardList, Clock, CheckCircle2, AlertTriangle, ChevronRight,
   Zap, ClipboardCheck, Activity, BookOpen, ArrowRight, CalendarDays,
@@ -60,10 +62,12 @@ function buildWeekData(wos: { status: WOStatus; completedAt?: string; createdAt:
 }
 
 export function MyTasks() {
-  const { state, navigateTo } = useApp();
+  const { state, navigateTo, updateWorkOrder } = useApp();
   const { currentUser, workOrders, preventiveMaintenance, checklistSubmissions } = state;
 
   const [tab, setTab] = useState<TabKey>("all");
+  const [selectedTask, setSelectedTask] = useState<WorkOrder | null>(null);
+  const [busy, setBusy] = useState(false);
 
   // My assigned work orders
   const myWOs = useMemo(() =>
@@ -239,12 +243,12 @@ export function MyTasks() {
         ) : (
           <div className="divide-y divide-slate-50">
             {filtered.slice(0, 10).map(wo => (
-              <div key={wo.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/50 transition-colors">
+              <div key={wo.id} onClick={() => setSelectedTask(wo)} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/50 transition-colors cursor-pointer group">
                 {/* Priority dot */}
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_COLOR[wo.priority] ?? "bg-slate-300"}`}/>
 
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold text-slate-800 truncate">{wo.title}</div>
+                  <div className="text-[13px] font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{wo.title}</div>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="flex items-center gap-1 text-[11px] text-slate-400">
                       <MapPin size={10}/>{wo.location}
@@ -266,7 +270,7 @@ export function MyTasks() {
                   <Badge className={STATUS_BADGE[wo.status] ?? STATUS_BADGE.open}>{wo.status.replace("_"," ")}</Badge>
                 </div>
 
-                <ChevronRight size={14} className="text-slate-300 flex-shrink-0"/>
+                <ChevronRight size={14} className="text-slate-300 flex-shrink-0 group-hover:text-blue-400 transition-colors"/>
               </div>
             ))}
           </div>
@@ -314,6 +318,92 @@ export function MyTasks() {
             })}
           </div>
         </div>
+      )}
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <Modal open={!!selectedTask} onClose={() => setSelectedTask(null)} title={selectedTask.woNumber}>
+          <div className="space-y-5">
+            <div>
+              <div className="flex gap-2 mb-2">
+                <Badge className={STATUS_BADGE[selectedTask.status] || STATUS_BADGE.open}>{selectedTask.status.replace("_"," ")}</Badge>
+                <div className={cn("px-2 py-0.5 rounded text-[10px] text-white font-bold uppercase", PRIORITY_COLOR[selectedTask.priority])}>
+                  {selectedTask.priority}
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">{selectedTask.title}</h3>
+              <p className="text-sm text-slate-500 mt-1">{selectedTask.description || "No description provided."}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Location</div>
+                <div className="text-sm font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                  <MapPin size={14} className="text-slate-400"/> {selectedTask.location}
+                </div>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl">
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Due Date</div>
+                <div className="text-sm font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                  <Clock size={14} className="text-slate-400"/> {new Date(selectedTask.dueDate).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Status Update (TC_TECH_02) */}
+            <div className="pt-4 border-t border-slate-100">
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Update Status</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { s: "in_progress", l: "Start Work", icon: <Activity size={14}/> },
+                  { s: "on_hold",     l: "On Hold",    icon: <Clock size={14}/> },
+                  { s: "completed",   l: "Complete",   icon: <CheckCircle2 size={14}/> },
+                ].map(opt => (
+                  <button
+                    key={opt.s}
+                    disabled={selectedTask.status === opt.s || busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      await updateWorkOrder(selectedTask.id, { status: opt.s as WOStatus });
+                      setSelectedTask(null);
+                      setBusy(false);
+                    }}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 p-3 rounded-xl border text-[11px] font-bold transition-all",
+                      selectedTask.status === opt.s ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+                    )}
+                  >
+                    {opt.icon}
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes Section (TC_TECH_04) */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-500 uppercase">Completion Notes</label>
+              <textarea
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400"
+                placeholder="Add any notes about the work performed..."
+                rows={3}
+              />
+            </div>
+
+            {/* File Upload Placeholder (TC_TECH_05) */}
+            <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl text-center">
+              <Activity className="mx-auto text-slate-300 mb-2" size={24}/>
+              <div className="text-xs font-semibold text-slate-500">File Upload</div>
+              <div className="text-[10px] text-slate-400 mt-1">Proof of completion (Images/PDFs) - Max 5MB</div>
+              <button disabled className="mt-3 text-[11px] font-bold text-blue-600 opacity-50 cursor-not-allowed">
+                Browse Files
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-5 border-t border-slate-100 mt-6">
+            <Button variant="ghost" onClick={() => setSelectedTask(null)}>Close</Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

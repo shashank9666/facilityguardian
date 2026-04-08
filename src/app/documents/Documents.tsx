@@ -63,21 +63,15 @@ export function Documents({ search }: { search: string }) {
   };
 
   useEffect(() => {
-    fetchDocuments();
-    loadStats();
-  }, [fetchDocuments]);
-
-  const documents = state.documents;
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return documents.filter(d => {
-      const matchQ = !q || d.title.toLowerCase().includes(q) || d.docNumber.toLowerCase().includes(q) || (d.tags ?? []).some(t => t.toLowerCase().includes(q));
-      const matchC = catFilter === "all" || d.category === catFilter;
-      const matchS = statusFilter === "all" || d.status === statusFilter;
-      return matchQ && matchC && matchS;
+    fetchDocuments({
+      q:      search,
+      category: catFilter === "all" ? "" : catFilter,
+      status:   statusFilter === "all" ? "" : statusFilter,
     });
-  }, [documents, search, catFilter, statusFilter]);
+    loadStats();
+  }, [fetchDocuments, search, catFilter, statusFilter]);
+
+  const { documents } = state;
 
   function openAdd() {
     setForm({
@@ -226,7 +220,7 @@ export function Documents({ search }: { search: string }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {filtered.map(d => {
+            {documents.map(d => {
               const expDays = d.expiryDate ? daysUntil(d.expiryDate) : null;
               return (
                 <tr key={d.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -296,7 +290,7 @@ export function Documents({ search }: { search: string }) {
           </tbody>
         </table>
 
-        {filtered.length === 0 && (
+        {documents.length === 0 && (
           <div className="py-16 text-center text-slate-400 text-sm">
             <Search size={28} className="mx-auto mb-2 opacity-30"/>
             No documents found

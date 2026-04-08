@@ -36,24 +36,18 @@ function StarRating({ value }: { value: number }) {
 export function Vendors({ search }: { search: string }) {
   const { state, addVendor, updateVendor, toast, fetchVendors } = useApp();
 
-  useEffect(() => {
-    fetchVendors();
-  }, [fetchVendors]);
-
   const { canManageVendors } = useRole();
-
-  const [filter, setFilter]     = useState("all");
-  const [addOpen, setAddOpen]   = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [addOpen, setAddOpen] = useState(false);
   const [editVendor, setEditVendor] = useState<Vendor | null>(null);
-  const [form, setForm]         = useState<Partial<Vendor>>({});
-  const [saving, setSaving]     = useState(false);
+  const [form, setForm] = useState<Partial<Vendor>>({});
+  const [saving, setSaving] = useState(false);
 
-  const filtered = useMemo(() => state.vendors.filter(v => {
-    const q = search.toLowerCase();
-    const matchQ = !q || v.name.toLowerCase().includes(q) || v.category.toLowerCase().includes(q);
-    const matchF = filter === "all" || v.status === filter;
-    return matchQ && matchF;
-  }), [state.vendors, search, filter]);
+  useEffect(() => {
+    fetchVendors({ q: search, status: filter === "all" ? "" : filter });
+  }, [fetchVendors, search, filter]);
+
+  const filtered = state.vendors;
 
   function openAdd() {
     setForm({ status: "active", category: "Other", slaHours: 24, rating: 4.0, totalOrders: 0, completedOnTime: 0 });
