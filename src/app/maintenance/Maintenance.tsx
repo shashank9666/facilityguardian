@@ -11,6 +11,7 @@ import { useRole } from "@/lib/rbac";
 import { request } from "@/lib/api/client";
 import { apiCreateMaintenance } from "./api";
 import { Wrench, CheckCircle, Clock, Calendar, Plus } from "lucide-react";
+import { validateMaintenanceForm } from "@/lib/form";
 
 export function Maintenance({ search }: { search: string }) {
   const { state, fetchMaintenance, fetchAssets, fetchTechnicians, updateMaintenance, toast } = useApp();
@@ -57,11 +58,15 @@ export function Maintenance({ search }: { search: string }) {
     }
   }
 
+
+
   async function handleAddSchedule() {
-    if (!form.title || !form.assetId) {
-      toast("Title and Asset are required", "error");
+    const validation = validateMaintenanceForm(form);
+    if (Object.keys(validation).length > 0) {
+      toast(Object.values(validation)[0], "error");
       return;
     }
+
     setSaving(true);
     try {
       const asset = state.assets.find(a => a.id === form.assetId);
@@ -239,11 +244,11 @@ export function Maintenance({ search }: { search: string }) {
             </select>
           </div>
           <div>
-            <label className="text-[11px] font-bold text-slate-400 uppercase">Next Due Date</label>
+            <label className="text-[11px] font-bold text-slate-400 uppercase">Next Due Date *</label>
             <input type="date" value={form.nextDue||""} onChange={e=>setForm({...form,nextDue:e.target.value})} className="w-full p-2 border rounded-lg text-sm"/>
           </div>
           <div className="col-span-2">
-            <label className="text-[11px] font-bold text-slate-400 uppercase">Checklist Tasks</label>
+            <label className="text-[11px] font-bold text-slate-400 uppercase">Checklist Tasks *</label>
             <div className="space-y-2 mt-1">
               {form.checklist.map((c: any, idx: number) => (
                 <div key={idx} className="flex gap-2">

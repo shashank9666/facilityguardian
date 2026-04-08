@@ -155,7 +155,7 @@ export function Incidents({ search }: { search: string }) {
         <div className="space-y-3">
           {[
             {label:"Title *",key:"title",type:"text",ph:"Brief description of the incident"},
-            {label:"Location",key:"location",type:"text",ph:"Where did it occur?"},
+            {label:"Location *",key:"location",type:"text",ph:"Where did it occur?"},
             {label:"Category",key:"category",type:"text",ph:"e.g. Plumbing, Electrical, Safety"},
           ].map(f=>(
             <div key={f.key}>

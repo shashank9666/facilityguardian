@@ -27,8 +27,29 @@ import { Documents }   from "./documents/Documents";
 import { Notifications } from "./notifications/Notifications";
 
 
-import { NavPage } from "@/types";
+import { NavPage, Role } from "@/types";
 import { Building2, X, Zap, Menu, RefreshCw, LogOut } from "lucide-react";
+import { useRole } from "@/lib/rbac";
+import { NotFound, Unauthorized } from "@/components/layout/ErrorPages";
+
+const PAGE_ROLES: Record<string, Role> = {
+  dashboard: "viewer",
+  "my-tasks": "technician",
+  "work-orders": "viewer",
+  incidents: "viewer",
+  assets: "viewer",
+  maintenance: "technician",
+  spaces: "viewer",
+  inventory: "viewer",
+  reports: "manager",
+  settings: "viewer",
+  amc: "manager",
+  documents: "viewer",
+  checklists: "technician",
+  "meter-readings": "technician",
+  vendors: "manager",
+  notifications: "viewer"
+};
 
 // ─── Loading spinner ──────────────────────────────────────────────────────────
 function FullPageSpinner() {
@@ -51,6 +72,7 @@ function FullPageSpinner() {
 // ─── Main App (inside AppProvider context) ────────────────────────────────────
 function FMNexusApp() {
   const { state, loading, logout, activePage, navigateTo, refreshAll } = useApp();
+  const { role, isAdmin, isManager, isTechnician } = useRole();
   const [search, setSearch]         = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [mounted, setMounted]       = useState(false);
@@ -87,9 +109,44 @@ function FMNexusApp() {
   // Show spinner while loading initial data (token present but data not yet fetched)
   if (loading) return <FullPageSpinner />;
 
+
   // Show login if no user loaded
   if (!state.currentUser.id && !getToken()) return <LoginScreen />;
   if (!state.currentUser.id) return <FullPageSpinner />;
+
+  const isAllowed = (p: NavPage) => {
+    const req = PAGE_ROLES[p];
+    if (!req) return false;
+    if (req === "admin") return isAdmin;
+    if (req === "manager") return isManager;
+    if (req === "technician") return isTechnician;
+    return true; 
+  };
+
+  const renderContent = () => {
+    if (!PAGE_ROLES[activePage]) return <NotFound onHome={() => handleNavigate("dashboard")} />;
+    if (!isAllowed(activePage))  return <Unauthorized onHome={() => handleNavigate("dashboard")} />;
+
+    switch (activePage) {
+      case "dashboard":   return <Dashboard />;
+      case "assets":      return <Assets search={search} />;
+      case "work-orders": return <WorkOrders search={search} />;
+      case "maintenance": return <Maintenance search={search} />;
+      case "vendors":     return <Vendors search={search} />;
+      case "spaces":      return <Spaces search={search} />;
+      case "incidents":   return <Incidents search={search} />;
+      case "inventory":   return <Inventory search={search} />;
+      case "reports":     return <Reports />;
+      case "settings":    return <Settings />;
+      case "my-tasks":    return <MyTasks />;
+      case "checklists":  return <Checklists />;
+      case "meter-readings": return <MeterReadings />;
+      case "amc":         return <AMC search={search} />;
+      case "documents":   return <Documents search={search} />;
+      case "notifications": return <Notifications />;
+      default: return <NotFound onHome={() => handleNavigate("dashboard")} />;
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8fafc] text-slate-900">
@@ -138,7 +195,7 @@ function FMNexusApp() {
              <Menu size={22} />
            </button>
            
-           {/* Desktop Page Title (hidden on mobile if needed, but keeping it visible is fine if space exists) */}
+           {/* Desktop Page Title */}
            <div className="hidden lg:block flex-1">
              <TopBar
                activePage={activePage}
@@ -168,22 +225,7 @@ function FMNexusApp() {
 
         <main className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto animate-slide-up space-y-6">
-            {activePage === "dashboard"   && <Dashboard />}
-            {activePage === "assets"      && <Assets search={search} />}
-            {activePage === "work-orders" && <WorkOrders search={search} />}
-            {activePage === "maintenance" && <Maintenance search={search} />}
-            {activePage === "vendors"     && <Vendors search={search} />}
-            {activePage === "spaces"      && <Spaces search={search} />}
-            {activePage === "incidents"   && <Incidents search={search} />}
-            {activePage === "inventory"   && <Inventory search={search} />}
-            {activePage === "reports"     && <Reports />}
-            {activePage === "settings"    && <Settings />}
-            {activePage === "my-tasks"    && <MyTasks />}
-            {activePage === "checklists"  && <Checklists />}
-            {activePage === "meter-readings" && <MeterReadings />}
-            {activePage === "amc"         && <AMC search={search} />}
-            {activePage === "documents"   && <Documents search={search} />}
-            {activePage === "notifications" && <Notifications />}
+            {renderContent()}
           </div>
         </main>
       </div>
