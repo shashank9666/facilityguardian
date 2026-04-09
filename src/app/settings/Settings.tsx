@@ -247,7 +247,7 @@ export function Settings() {
               {[
                 { key: "workOrderAssigned",    label: "Work Order Assigned" },
                 { key: "pmScheduleDue",        label: "PM Schedule Due" },
-                { key: "incidentReported",      label: "Incident Reported" },
+                { key: "serviceRequestReported", label: "Service Request Reported" },
                 { key: "lowStockAlert",        label: "Low Stock Alert" },
                 { key: "assetStatusChange",    label: "Asset Status Change" },
                 { key: "vendorContractExpiry", label: "Vendor Contract Expiry" },

@@ -67,7 +67,7 @@ export function LoginScreen() {
             in one platform.
           </h2>
           <p className="text-slate-400 text-[15px] leading-relaxed max-w-sm">
-            Manage assets, work orders, preventive maintenance, vendors, inventory, and incidents — all in real time.
+            Manage assets, work orders, preventive maintenance, vendors, inventory, and service requests — all in real time.
           </p>
         </div>
 

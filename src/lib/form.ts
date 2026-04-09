@@ -29,9 +29,9 @@ export function validateUserForm(data: any): ValidationErrors {
   return errors;
 }
 
-export function validateIncidentForm(data: any): ValidationErrors {
+export function validateServiceRequestForm(data: any): ValidationErrors {
   const errors: ValidationErrors = {};
-  if (!data.title?.trim()) errors.title = "Incident title is required";
+  if (!data.title?.trim()) errors.title = "Service Request title is required";
   if (!data.description?.trim()) errors.description = "Detailed description is required";
   if (!data.location?.trim()) errors.location = "Location is required";
   if (!data.severity) errors.severity = "Severity must be selected";

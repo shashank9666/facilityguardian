@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "FMNexus – Facility Management Platform",
-  description: "Enterprise Facility Management Platform – Assets, Work Orders, Maintenance, Vendors, Spaces, Incidents, Inventory",
+  description: "Enterprise Facility Management Platform – Assets, Work Orders, Maintenance, Vendors, Spaces, Service Requests, Inventory",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

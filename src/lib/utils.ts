@@ -1,5 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
-import type { Priority, WOStatus, AssetStatus, IncidentSeverity } from "@/types";
+import type { Priority, WOStatus, AssetStatus, ServiceRequestSeverity } from "@/types";
 
 /** Merge Tailwind class names safely */
 export function cn(...inputs: ClassValue[]) {
@@ -96,7 +96,7 @@ export const assetStatusVariant: Record<AssetStatus, string> = {
   decommissioned: "bg-gray-100  text-gray-500   border border-gray-200",
 };
 
-export const severityVariant: Record<IncidentSeverity, string> = {
+export const severityVariant: Record<ServiceRequestSeverity, string> = {
   low:      "bg-green-50  text-green-700  border border-green-200",
   medium:   "bg-amber-50  text-amber-700  border border-amber-200",
   high:     "bg-red-50    text-red-700    border border-red-200",
