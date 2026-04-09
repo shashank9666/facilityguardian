@@ -9,7 +9,7 @@ import React, {
   useEffect, useState, type ReactNode,
 } from "react";
 import type {
-  AppState, Toast, Asset, WorkOrder, InventoryItem, Incident, Vendor, Space, User,
+  AppState, Toast, Asset, WorkOrder, InventoryItem, ServiceRequest, Vendor, Space, User,
   ChecklistSubmission, MeterReading, AMCContract, FMDocument, NavPage, PreventiveMaintenance, FmNotification,
 } from "@/types";
 import { uid } from "@/lib/utils";
@@ -18,7 +18,7 @@ import {
   apiLogin, apiGetMe, apiGetUsers, apiGetTechnicians,
   apiGetAssets, apiCreateAsset, apiUpdateAsset, apiDeleteAsset,
   apiGetWorkOrders, apiCreateWorkOrder, apiUpdateWorkOrder, apiDeleteWorkOrder,
-  apiGetIncidents, apiCreateIncident, apiUpdateIncident,
+  apiGetServiceRequests, apiCreateServiceRequest, apiUpdateServiceRequest,
   apiGetInventory, apiCreateInventoryItem, apiUpdateInventoryItem, apiDeleteInventoryItem, apiRestockItem,
   apiGetVendors, apiCreateVendor, apiUpdateVendor,
   apiGetSpaces, apiCreateSpace, apiUpdateSpace, apiDeleteSpace,
@@ -37,7 +37,7 @@ const BLANK_USER: User = {
   notificationPreferences: {
     workOrderAssigned: true,
     pmScheduleDue: true,
-    incidentReported: true,
+    serviceRequestReported: true,
     lowStockAlert: true,
     assetStatusChange: false,
     vendorContractExpiry: true,
@@ -50,7 +50,7 @@ const BLANK_USER: User = {
 const BLANK_STATE: AppState = {
   currentUser: BLANK_USER,
   assets: [], workOrders: [], preventiveMaintenance: [],
-  vendors: [], spaces: [],  incidents: [], inventory: [], toasts: [],
+  vendors: [], spaces: [],  serviceRequests: [], inventory: [], toasts: [],
   users: [],
   checklistSubmissions: [],
   meterReadings: [],
@@ -69,8 +69,8 @@ type Action =
   | { type: "DELETE_ASSET";           payload: string }
   | { type: "ADD_WO";                 payload: WorkOrder }
   | { type: "UPDATE_WO";              payload: WorkOrder }
-  | { type: "ADD_INCIDENT";           payload: Incident }
-  | { type: "UPDATE_INCIDENT";        payload: Incident }
+  | { type: "ADD_SERVICE_REQUEST";    payload: ServiceRequest }
+  | { type: "UPDATE_SERVICE_REQUEST"; payload: ServiceRequest }
   | { type: "UPDATE_INVENTORY";       payload: InventoryItem }
   | { type: "ADD_INVENTORY";          payload: InventoryItem }
   | { type: "DELETE_INVENTORY";       payload: string }
@@ -118,10 +118,10 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, workOrders: [action.payload, ...state.workOrders] };
     case "UPDATE_WO":
       return { ...state, workOrders: state.workOrders.map(w => w.id === action.payload.id ? action.payload : w) };
-    case "ADD_INCIDENT":
-      return { ...state, incidents: [action.payload, ...state.incidents] };
-    case "UPDATE_INCIDENT":
-      return { ...state, incidents: state.incidents.map(i => i.id === action.payload.id ? action.payload : i) };
+    case "ADD_SERVICE_REQUEST":
+      return { ...state, serviceRequests: [action.payload, ...state.serviceRequests] };
+    case "UPDATE_SERVICE_REQUEST":
+      return { ...state, serviceRequests: state.serviceRequests.map(i => i.id === action.payload.id ? action.payload : i) };
     case "ADD_INVENTORY":
       return { ...state, inventory: [action.payload, ...state.inventory] };
     case "UPDATE_INVENTORY":
@@ -210,8 +210,8 @@ interface AppContextValue {
   addSpace:    (body: Record<string, unknown>) => Promise<void>;
   updateSpace: (id: string, body: Record<string, unknown>) => Promise<void>;
   deleteSpace: (id: string) => Promise<void>;
-  addIncident:    (body: Record<string, unknown>) => Promise<void>;
-  updateIncident: (id: string, body: Record<string, unknown>) => Promise<void>;
+  addServiceRequest:    (body: Record<string, unknown>) => Promise<void>;
+  updateServiceRequest: (id: string, body: Record<string, unknown>) => Promise<void>;
   addMaintenance:    (body: any) => Promise<void>;
   updateMaintenance: (id: string, body: any) => Promise<void>;
   deleteMaintenance: (id: string) => Promise<void>;
@@ -236,7 +236,7 @@ interface AppContextValue {
   fetchAssets: (p?: any) => Promise<void>;
   fetchWorkOrders: (p?: any) => Promise<void>;
   fetchVendors: (p?: any) => Promise<void>;
-  fetchIncidents: (p?: any) => Promise<void>;
+  fetchServiceRequests: (p?: any) => Promise<void>;
   fetchInventory: (p?: any) => Promise<void>;
   fetchSpaces: (p?: any) => Promise<void>;
   fetchMaintenance: (p?: any) => Promise<void>;
@@ -311,13 +311,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
 
       const [
-        assets, workOrders, vendors, incidents, inventory, spaces, 
+        assets, workOrders, vendors, serviceRequests, inventory, spaces, 
         pm, amc, docs, check, meter, users, techs
       ] = await Promise.all([
         safeFetch(apiGetAssets, []),
         safeFetch(apiGetWorkOrders, []),
         safeFetch(apiGetVendors, []),
-        safeFetch(apiGetIncidents, []),
+        safeFetch(apiGetServiceRequests, []),
         safeFetch(apiGetInventory, []),
         safeFetch(apiGetSpaces, []),
         safeFetch(apiGetMaintenance, []),
@@ -330,7 +330,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ]);
 
       dispatch({ type: "SET_ALL_DATA", payload: {
-        assets, workOrders, vendors, incidents, inventory, spaces,
+        assets, workOrders, vendors, serviceRequests, inventory, spaces,
         preventiveMaintenance: pm, amcContracts: amc, documents: docs,
         checklistSubmissions: check, meterReadings: meter,
         users: users as User[], technicians: techs as User[]
@@ -347,7 +347,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const fetchAssets      = useCallback(async (p?: any) => { const data = await apiGetAssets(p);      dispatch({ type: "SET_ALL_DATA", payload: { assets: data }}); }, []);
   const fetchWorkOrders  = useCallback(async (p?: any) => { const data = await apiGetWorkOrders(p);  dispatch({ type: "SET_ALL_DATA", payload: { workOrders: data }}); }, []);
   const fetchVendors     = useCallback(async (p?: any) => { const data = await apiGetVendors(p);     dispatch({ type: "SET_ALL_DATA", payload: { vendors: data }}); }, []);
-  const fetchIncidents   = useCallback(async (p?: any) => { const data = await apiGetIncidents(p);   dispatch({ type: "SET_ALL_DATA", payload: { incidents: data }}); }, []);
+  const fetchServiceRequests = useCallback(async (p?: any) => { const data = await apiGetServiceRequests(p); dispatch({ type: "SET_ALL_DATA", payload: { serviceRequests: data }}); }, []);
   const fetchInventory   = useCallback(async (p?: any) => { const data = await apiGetInventory(p);   dispatch({ type: "SET_ALL_DATA", payload: { inventory: data }}); }, []);
   const fetchSpaces      = useCallback(async (p?: any) => { const data = await apiGetSpaces(p);      dispatch({ type: "SET_ALL_DATA", payload: { spaces: data }}); }, []);
   const fetchMaintenance = useCallback(async (p?: any) => { const data = await apiGetMaintenance(p); dispatch({ type: "SET_ALL_DATA", payload: { preventiveMaintenance: data }}); }, []);
@@ -486,15 +486,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "DELETE_SPACE", payload: id });
   }, []);
 
-  // ── Incident helpers ──────────────────────────────────────────────────────────
-  const addIncident = useCallback(async (body: Record<string, unknown>) => {
-    const inc = await apiCreateIncident(body) as Incident;
-    dispatch({ type: "ADD_INCIDENT", payload: inc });
+  // ── Service Request helpers ──────────────────────────────────────────────────
+  const addServiceRequest = useCallback(async (body: Record<string, unknown>) => {
+    const sr = await apiCreateServiceRequest(body) as ServiceRequest;
+    dispatch({ type: "ADD_SERVICE_REQUEST", payload: sr });
   }, []);
 
-  const updateIncident = useCallback(async (id: string, body: Record<string, unknown>) => {
-    const inc = await apiUpdateIncident(id, body) as Incident;
-    dispatch({ type: "UPDATE_INCIDENT", payload: inc });
+  const updateServiceRequest = useCallback(async (id: string, body: Record<string, unknown>) => {
+    const sr = await apiUpdateServiceRequest(id, body) as ServiceRequest;
+    dispatch({ type: "UPDATE_SERVICE_REQUEST", payload: sr });
   }, []);
 
   // ── PM helpers ─────────────────────────────────────────────────────────────
@@ -637,7 +637,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addWorkOrder, updateWorkOrder,
       addVendor, updateVendor,
       addSpace, updateSpace, deleteSpace,
-      addIncident, updateIncident,
+      addServiceRequest, updateServiceRequest,
       addMaintenance, updateMaintenance, deleteMaintenance,
       addInventoryItem, updateInventoryItem, deleteInventoryItem, restockInventoryItem,
       submitChecklist, submitMeterReading, updateMeterReading, deleteMeterReading,
@@ -645,7 +645,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addDocument, updateDocument, deleteDocument,
       activePage, navigateTo,
       refreshAll,
-      fetchAssets, fetchWorkOrders, fetchVendors, fetchIncidents, fetchInventory,
+      fetchAssets, fetchWorkOrders, fetchVendors, fetchServiceRequests, fetchInventory,
       fetchSpaces, fetchMaintenance, fetchAMC, fetchDocuments, fetchChecklists, fetchMeterReadings,
       fetchNotifications, markNotificationRead, markAllNotificationsRead,
       fetchUsers, fetchTechnicians, addUser, updateUser, deleteUser, updateMe,

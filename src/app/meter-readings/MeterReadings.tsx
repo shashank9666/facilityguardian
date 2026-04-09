@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
-import { cn } from "@/lib/utils";
+import { cn, fmtDate } from "@/lib/utils";
 import type { MeterType, MeterReading } from "@/types";
 import {
   Activity, TrendingUp, TrendingDown, Plus, CheckCircle2,
@@ -218,7 +218,7 @@ export function MeterReadings() {
                     {trend === "up" ? <TrendingUp size={11} className="text-red-500"/> : trend === "down" ? <TrendingDown size={11} className="text-emerald-500"/> : null}
                     <span className="text-slate-500">Consumption: {last.consumption} {m.unit}</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{last.readingDate}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{fmtDate(last.readingDate)}</div>
                 </>
               ) : (
                 <div className="text-[12px] text-slate-400">No readings yet</div>
@@ -281,7 +281,7 @@ export function MeterReadings() {
               <tbody className="divide-y divide-slate-50">
                 {readings.slice().sort((a, b) => b.readingDate.localeCompare(a.readingDate)).map(r => (
                   <tr key={r.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-4 py-3 font-medium text-slate-700">{r.readingDate}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700">{fmtDate(r.readingDate)}</td>
                     <td className="px-4 py-3">
                       <Badge className={TYPE_BADGE[r.meterType] ?? TYPE_BADGE.Other}>{r.meterName}</Badge>
                     </td>

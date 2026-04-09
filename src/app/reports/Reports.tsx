@@ -38,11 +38,11 @@ const COLORS = [
   "#ec4899",
 ];
 
-type Tab = "overview" | "assets" | "vendors" | "incidents";
+type Tab = "overview" | "assets" | "vendors" | "service-requests";
 
 export function Reports() {
   const { 
-    state, fetchAssets, fetchWorkOrders, fetchIncidents, fetchInventory, 
+    state, fetchAssets, fetchWorkOrders, fetchServiceRequests, fetchInventory, 
     fetchSpaces, fetchVendors, fetchMaintenance, fetchAMC, fetchDocuments 
   } = useApp();
   const [tab, setTab] = useState<Tab>("overview");
@@ -60,16 +60,16 @@ export function Reports() {
     // Fetch all needed data with parameters
     fetchAssets(f);
     fetchWorkOrders(f);
-    fetchIncidents(f);
+    fetchServiceRequests(f);
     fetchInventory(); // Inventory usually global
     fetchSpaces(f);
     fetchVendors();
     fetchMaintenance(f);
     fetchAMC();
     fetchDocuments();
-  }, [filters.site, filters.department, fetchAssets, fetchWorkOrders, fetchIncidents, fetchInventory, fetchSpaces, fetchVendors, fetchMaintenance, fetchAMC, fetchDocuments]);
+  }, [filters.site, filters.department, fetchAssets, fetchWorkOrders, fetchServiceRequests, fetchInventory, fetchSpaces, fetchVendors, fetchMaintenance, fetchAMC, fetchDocuments]);
 
-  const { assets, workOrders, incidents, inventory, vendors, preventiveMaintenance, spaces } = state;
+  const { assets, workOrders, serviceRequests, inventory, vendors, preventiveMaintenance, spaces } = state;
 
   const sites = ["All", ...new Set(spaces.map(s => s.site || "Main Campus"))].sort();
   const departments = ["All", ...new Set(assets.map(a => a.department).filter(Boolean))].sort();
@@ -112,11 +112,11 @@ export function Reports() {
     rating: v.rating,
   }));
 
-  // ── Incident breakdown by category ──
-  const incidentCats = [...new Set(incidents.map((i) => i.category || "Other"))]
+  // ── Service Request breakdown by category ──
+  const serviceRequestCats = [...new Set(serviceRequests.map((i) => i.category || "Other"))]
     .map((cat) => ({
       name: cat,
-      value: incidents.filter((i) => (i.category || "Other") === cat).length,
+      value: serviceRequests.filter((i) => (i.category || "Other") === cat).length,
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
@@ -174,14 +174,14 @@ export function Reports() {
           : 0,
     },
     {
-      subject: "Incidents",
+      subject: "Service Requests",
       A:
-        incidents.length > 0
+        serviceRequests.length > 0
           ? Math.round(
-              (incidents.filter((i) =>
+              (serviceRequests.filter((i) =>
                 ["resolved", "closed"].includes(i.status),
               ).length /
-                incidents.length) *
+                serviceRequests.length) *
                 100,
             )
           : 0,
@@ -242,13 +242,13 @@ export function Reports() {
     vendors.length > 0
       ? (vendors.reduce((s, v) => s + v.rating, 0) / vendors.length).toFixed(1)
       : "—";
-  const incidentResolution =
-    incidents.length > 0
+  const serviceRequestResolution =
+    serviceRequests.length > 0
       ? Math.round(
-          (incidents.filter(
+          (serviceRequests.filter(
             (i) => i.status === "resolved" || i.status === "closed",
           ).length /
-            incidents.length) *
+            serviceRequests.length) *
             100,
         )
       : 0;
@@ -260,7 +260,7 @@ export function Reports() {
     { key: "overview", label: "Overview" },
     { key: "assets", label: "Assets" },
     { key: "vendors", label: "Vendors" },
-    { key: "incidents", label: "Incidents" },
+    { key: "service-requests", label: "Service Requests" },
   ];
 
   return (
@@ -341,8 +341,8 @@ export function Reports() {
             bg: "bg-green-50",
           },
           {
-            label: "Incident Resolution Rate",
-            value: `${incidentResolution}%`,
+            label: "Request Resolution Rate",
+            value: `${serviceRequestResolution}%`,
             icon: "⚠️",
             bg: "bg-amber-50",
           },
@@ -522,8 +522,8 @@ export function Reports() {
                     ],
                     ["Avg Vendor Rating", avgVendorRating, "text-amber-600"],
                     [
-                      "Active Incidents",
-                      incidents.filter(
+                      "Active Service Requests",
+                      serviceRequests.filter(
                         (i) => !["resolved", "closed"].includes(i.status),
                       ).length,
                       "text-amber-600",
@@ -866,16 +866,16 @@ export function Reports() {
         </div>
       )}
 
-      {/* ── Incidents Tab ── */}
-      {tab === "incidents" && (
+      {/* ── Service Requests Tab ── */}
+      {tab === "service-requests" && (
         <div className="grid grid-cols-2 gap-5">
           <Card>
-            <CardHeader title="Incidents by Category" />
+            <CardHeader title="Requests by Category" />
             <CardBody>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
-                    data={incidentCats}
+                    data={serviceRequestCats}
                     cx="45%"
                     cy="50%"
                     outerRadius={85}
@@ -884,7 +884,7 @@ export function Reports() {
                     label={({ name, value }) => `${name} (${value})`}
                     labelLine={false}
                   >
-                    {incidentCats.map((_, i) => (
+                    {serviceRequestCats.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
@@ -896,19 +896,19 @@ export function Reports() {
           </Card>
 
           <Card>
-            <CardHeader title="Incidents by Severity & Status" />
+            <CardHeader title="Requests by Severity & Status" />
             <CardBody>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart
                   data={[
                     {
                       name: "Critical",
-                      open: incidents.filter(
+                      open: serviceRequests.filter(
                         (i) =>
                           i.severity === "critical" &&
                           !["resolved", "closed"].includes(i.status),
                       ).length,
-                      closed: incidents.filter(
+                      closed: serviceRequests.filter(
                         (i) =>
                           i.severity === "critical" &&
                           ["resolved", "closed"].includes(i.status),
@@ -916,12 +916,12 @@ export function Reports() {
                     },
                     {
                       name: "High",
-                      open: incidents.filter(
+                      open: serviceRequests.filter(
                         (i) =>
                           i.severity === "high" &&
                           !["resolved", "closed"].includes(i.status),
                       ).length,
-                      closed: incidents.filter(
+                      closed: serviceRequests.filter(
                         (i) =>
                           i.severity === "high" &&
                           ["resolved", "closed"].includes(i.status),
@@ -929,12 +929,12 @@ export function Reports() {
                     },
                     {
                       name: "Medium",
-                      open: incidents.filter(
+                      open: serviceRequests.filter(
                         (i) =>
                           i.severity === "medium" &&
                           !["resolved", "closed"].includes(i.status),
                       ).length,
-                      closed: incidents.filter(
+                      closed: serviceRequests.filter(
                         (i) =>
                           i.severity === "medium" &&
                           ["resolved", "closed"].includes(i.status),
@@ -942,12 +942,12 @@ export function Reports() {
                     },
                     {
                       name: "Low",
-                      open: incidents.filter(
+                      open: serviceRequests.filter(
                         (i) =>
                           i.severity === "low" &&
                           !["resolved", "closed"].includes(i.status),
                       ).length,
-                      closed: incidents.filter(
+                      closed: serviceRequests.filter(
                         (i) =>
                           i.severity === "low" &&
                           ["resolved", "closed"].includes(i.status),
@@ -989,33 +989,33 @@ export function Reports() {
             </CardBody>
           </Card>
 
-          {/* Incident stats table */}
+          {/* Service Request stats table */}
           <Card className="col-span-2">
-            <CardHeader title="Incident Statistics" />
+            <CardHeader title="Service Request Statistics" />
             <CardBody>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   {
-                    label: "Total Incidents",
-                    val: incidents.length,
+                    label: "Total Requests",
+                    val: serviceRequests.length,
                     color: "text-blue-600",
                   },
                   {
                     label: "Open / Active",
-                    val: incidents.filter(
+                    val: serviceRequests.filter(
                       (i) => !["resolved", "closed"].includes(i.status),
                     ).length,
                     color: "text-amber-600",
                   },
                   {
                     label: "Resolved",
-                    val: incidents.filter((i) => i.status === "resolved")
+                    val: serviceRequests.filter((i) => i.status === "resolved")
                       .length,
                     color: "text-green-600",
                   },
                   {
                     label: "Critical Open",
-                    val: incidents.filter(
+                    val: serviceRequests.filter(
                       (i) => i.severity === "critical" && i.status !== "closed",
                     ).length,
                     color: "text-red-600",

@@ -7,8 +7,10 @@ import { cn, uid } from "@/lib/utils";
 import type { ChecklistTemplate, ChecklistField, ChecklistCategory, ChecklistSubmission } from "@/types";
 import {
   ClipboardCheck, ChevronRight, ArrowLeft, CheckCircle2,
-  AlertTriangle, Clock, Camera, Send,
+  AlertTriangle, Clock, Camera, Send, QrCode, Download, ExternalLink
 } from "lucide-react";
+import QRCode from "qrcode";
+import { Modal } from "@/components/ui/Modal";
 
 // ─── Checklist Templates ───────────────────────────────────────────────────────
 const TEMPLATES: ChecklistTemplate[] = [
@@ -322,8 +324,20 @@ function FieldInput({
 export function Checklists() {
   const { state, submitChecklist, toast, fetchChecklists } = useApp();
 
+  // QR Modal state
+  const [qrOpen, setQrOpen]     = useState(false);
+  const [qrTpl, setQrTpl]       = useState<ChecklistTemplate | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
   useEffect(() => {
     fetchChecklists();
+    // Deep-linking: check for 'tpl' in URL
+    const params = new URLSearchParams(window.location.search);
+    const tplId  = params.get("tpl");
+    if (tplId) {
+      const tpl = TEMPLATES.find(t => t.id === tplId);
+      if (tpl) openTemplate(tpl);
+    }
   }, [fetchChecklists]);
 
   const [catFilter, setCatFilter] = useState<"ALL" | ChecklistCategory>("ALL");
@@ -336,12 +350,41 @@ export function Checklists() {
     catFilter === "ALL" ? TEMPLATES : TEMPLATES.filter(t => t.category === catFilter),
   [catFilter]);
 
-  function openTemplate(tpl: ChecklistTemplate) {
+  async function openTemplate(tpl: ChecklistTemplate) {
     const init: Record<string, string> = {};
     tpl.fields.forEach(f => { init[f.id] = ""; });
     setFieldValues(init);
     setActiveTemplate(tpl);
     setSubmitted(false);
+
+    // Sync URL for deep-linking
+    const url = new URL(window.location.href);
+    url.searchParams.set("tpl", tpl.id);
+    window.history.pushState({}, "", url.toString());
+  }
+
+  function closeTemplate() {
+    setActiveTemplate(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("tpl");
+    window.history.pushState({}, "", url.toString());
+  }
+
+  async function showQr(e: React.MouseEvent, tpl: ChecklistTemplate) {
+    e.stopPropagation();
+    try {
+      const url = `${window.location.origin}/?m=checklists&tpl=${tpl.id}`;
+      const dataUrl = await QRCode.toDataURL(url, {
+        width: 300,
+        margin: 2,
+        color: { dark: "#1e293b", light: "#ffffff" }
+      });
+      setQrDataUrl(dataUrl);
+      setQrTpl(tpl);
+      setQrOpen(true);
+    } catch (err) {
+      toast("Failed to generate QR code", "error");
+    }
   }
 
   async function handleSubmit() {
@@ -406,7 +449,7 @@ export function Checklists() {
           <div className="text-slate-400 text-xs mt-0.5">{new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</div>
         </div>
         <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => { setActiveTemplate(null); setSubmitted(false); }}>
+          <Button variant="secondary" onClick={() => { closeTemplate(); setSubmitted(false); }}>
             Back to Checklists
           </Button>
           <Button variant="primary" onClick={() => openTemplate(activeTemplate)}>
@@ -424,7 +467,7 @@ export function Checklists() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveTemplate(null)}
+            onClick={() => closeTemplate()}
             className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors"
           >
             <ArrowLeft size={16}/>
@@ -520,11 +563,11 @@ export function Checklists() {
             s.submittedAt.slice(0, 10) === today
           );
           return (
-            <button
+            <div
               key={tpl.id}
               onClick={() => openTemplate(tpl)}
               className={cn(
-                "flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group",
+                "flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all group cursor-pointer",
                 todaySub
                   ? "bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
                   : "bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md"
@@ -553,8 +596,17 @@ export function Checklists() {
                   {todaySub ? "✓ Submitted today" : CATEGORY_SUB[tpl.id] ?? tpl.category}
                 </div>
               </div>
-              <ChevronRight size={16} className={todaySub ? "text-emerald-400" : "text-slate-300 group-hover:text-indigo-400 transition-colors"}/>
-            </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={(e) => showQr(e, tpl)}
+                  title="Generate QR code"
+                  className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors border border-transparent hover:border-indigo-100"
+                >
+                  <QrCode size={16}/>
+                </button>
+                <ChevronRight size={16} className={todaySub ? "text-emerald-400" : "text-slate-300 group-hover:text-indigo-400 transition-colors"}/>
+              </div>
+            </div>
           );
         })}
       </div>
@@ -593,6 +645,28 @@ export function Checklists() {
           </div>
         </div>
       )}
+
+      {/* QR Code Modal */}
+      <Modal open={qrOpen} onClose={() => setQrOpen(false)} title="Checklist QR Code" size="sm"
+        footer={<Button variant="secondary" onClick={() => setQrOpen(false)}>Close</Button>}>
+        <div className="flex flex-col items-center text-center p-2">
+          <div className="mb-4 text-slate-500 text-sm">
+            Scan this code to directly open <span className="font-bold text-slate-800">{qrTpl?.name}</span>.
+          </div>
+          <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xl mb-6">
+            <img src={qrDataUrl} alt="QR Code" className="w-[200px] h-[200px]" />
+          </div>
+          <div className="flex gap-2 w-full">
+            <a href={qrDataUrl} download={`${qrTpl?.id}-qr.png`} className="flex-1">
+              <Button variant="secondary" className="w-full" leftIcon={<Download size={14}/>}>Download</Button>
+            </a>
+            <Button variant="primary" className="flex-1" leftIcon={<ExternalLink size={14}/>} 
+              onClick={() => window.open(`${window.location.origin}/?m=checklists&tpl=${qrTpl?.id}`, "_blank")}>
+              Test Link
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

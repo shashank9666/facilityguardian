@@ -7,7 +7,7 @@ export * from "../app/auth/api";
 export * from "../app/assets/api";
 export * from "../app/work-orders/api";
 export * from "../app/vendors/api";
-export * from "../app/incidents/api";
+export * from "../app/service-requests/api";
 export * from "../app/inventory/api";
 export * from "../app/spaces/api";
 export * from "../app/maintenance/api";

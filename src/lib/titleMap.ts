@@ -5,7 +5,7 @@ export const titleMap: Record<string, { title: string; subtitle: string }> = {
   maintenance:    { title: "Preventive Maintenance",subtitle: "Scheduled maintenance plans" },
   vendors:        { title: "Vendor Management",     subtitle: "Contractors, suppliers & SLAs" },
   spaces:         { title: "Space Management",      subtitle: "Occupancy & floor plan tracking" },
-  incidents:      { title: "Incident Management",   subtitle: "Report and resolve facility incidents" },
+  "service-requests": { title: "Service Requests",   subtitle: "Handle and resolve facility requests" },
   inventory:      { title: "Inventory & Parts",     subtitle: "Spare parts & consumables stock" },
   reports:        { title: "Reports & Analytics",   subtitle: "Insights and performance metrics" },
   settings:       { title: "Account Settings",      subtitle: "Users, roles & system configuration" },

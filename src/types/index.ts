@@ -10,8 +10,8 @@ export type WOType = "corrective" | "preventive" | "inspection" | "emergency";
 export type PMFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "semi-annual" | "annual";
 export type PMStatus = "active" | "paused" | "overdue";
 export type SpaceStatus = "available" | "occupied" | "maintenance" | "reserved";
-export type IncidentStatus = "reported" | "investigating" | "resolved" | "closed";
-export type IncidentSeverity = "low" | "medium" | "high" | "critical";
+export type ServiceRequestStatus = "reported" | "investigating" | "resolved" | "closed";
+export type ServiceRequestSeverity = "low" | "medium" | "high" | "critical";
 export type VendorStatus = "active" | "inactive" | "blacklisted";
 export type InventoryStatus = "in_stock" | "low_stock" | "out_of_stock";
 
@@ -28,7 +28,7 @@ export interface User {
   notificationPreferences: {
     workOrderAssigned: boolean;
     pmScheduleDue: boolean;
-    incidentReported: boolean;
+    serviceRequestReported: boolean;
     lowStockAlert: boolean;
     assetStatusChange: boolean;
     vendorContractExpiry: boolean;
@@ -155,13 +155,13 @@ export interface Space {
 }
 
 
-export interface Incident {
+export interface ServiceRequest {
   id: string;
-  incidentNumber: string;
+  requestNumber: string;
   title: string;
   description: string;
-  severity: IncidentSeverity;
-  status: IncidentStatus;
+  severity: ServiceRequestSeverity;
+  status: ServiceRequestStatus;
   location: string;
   reportedBy: string;
   reportedAt: string;
@@ -219,7 +219,7 @@ export interface AppState {
   preventiveMaintenance: PreventiveMaintenance[];
   vendors: Vendor[];
   spaces: Space[];
-  incidents: Incident[];
+  serviceRequests: ServiceRequest[];
   inventory: InventoryItem[];
   users: User[];
   toasts: Toast[];
@@ -341,5 +341,5 @@ export interface FmNotification {
 
 export type NavPage =
   | "dashboard" | "assets" | "work-orders" | "maintenance" | "vendors"
-  | "spaces" | "incidents" | "inventory" | "reports" | "settings"
+  | "spaces" | "service-requests" | "inventory" | "reports" | "settings"
   | "my-tasks" | "checklists" | "meter-readings" | "amc" | "documents" | "notifications";

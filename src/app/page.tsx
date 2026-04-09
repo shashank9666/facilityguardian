@@ -15,7 +15,7 @@ import { WorkOrders }  from "./work-orders/WorkOrders";
 import { Maintenance } from "./maintenance/Maintenance";
 import { Vendors }     from "./vendors/Vendors";
 import { Spaces }      from "./spaces/Spaces";
-import { Incidents }   from "./incidents/Incidents";
+import { ServiceRequests } from "./service-requests/ServiceRequests";
 import { Inventory }   from "./inventory/Inventory";
 import { Reports }     from "./reports/Reports";
 import { Settings }    from "./settings/Settings";
@@ -36,7 +36,7 @@ const PAGE_ROLES: Record<string, Role> = {
   dashboard: "viewer",
   "my-tasks": "technician",
   "work-orders": "viewer",
-  incidents: "viewer",
+  "service-requests": "viewer",
   assets: "viewer",
   maintenance: "technician",
   spaces: "viewer",
@@ -134,7 +134,7 @@ function FMNexusApp() {
       case "maintenance": return <Maintenance search={search} />;
       case "vendors":     return <Vendors search={search} />;
       case "spaces":      return <Spaces search={search} />;
-      case "incidents":   return <Incidents search={search} />;
+      case "service-requests": return <ServiceRequests search={search} />;
       case "inventory":   return <Inventory search={search} />;
       case "reports":     return <Reports />;
       case "settings":    return <Settings />;

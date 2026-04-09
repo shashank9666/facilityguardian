@@ -19,7 +19,7 @@ import {
 
 export function Dashboard() {
   const { state, refreshAll } = useApp();
-  const { assets, workOrders, incidents, inventory, preventiveMaintenance, spaces } = state;
+  const { assets, workOrders, serviceRequests, inventory, preventiveMaintenance, spaces } = state;
 
   useEffect(() => {
     refreshAll();
@@ -30,7 +30,7 @@ export function Dashboard() {
   const faultyAssets    = assets.filter(a => a.status === "faulty").length;
   const openWOs         = workOrders.filter(w => ["open","assigned","in_progress"].includes(w.status)).length;
   const criticalWOs     = workOrders.filter(w => w.priority === "critical" && w.status !== "completed").length;
-  const activeIncidents = incidents.filter(i => i.status !== "closed" && i.status !== "resolved").length;
+  const activeServiceRequests = serviceRequests.filter(i => i.status !== "closed" && i.status !== "resolved").length;
   const lowStockItems   = inventory.filter(i => i.status !== "in_stock").length;
   const overdueWOs      = workOrders.filter(w => w.status !== "completed" && daysUntil(w.dueDate) < 0).length;
   const completedThisWeek = workOrders.filter(w => w.status === "completed" && daysUntil(w.completedAt ?? "") > -7).length;
@@ -59,8 +59,8 @@ export function Dashboard() {
   const alerts = [
     ...workOrders.filter(w => w.priority === "critical" && w.status !== "completed")
       .map(w => ({ type: "critical" as const, msg: `Critical WO: ${w.title}`, sub: w.woNumber, icon: <AlertOctagon size={14}/> })),
-    ...incidents.filter(i => i.severity === "critical" && i.status !== "closed")
-      .map(i => ({ type: "critical" as const, msg: `Critical Incident: ${i.title}`, sub: i.incidentNumber, icon: <ShieldAlert size={14}/> })),
+    ...serviceRequests.filter(i => i.severity === "critical" && i.status !== "closed")
+      .map(i => ({ type: "critical" as const, msg: `Critical Request: ${i.title}`, sub: i.requestNumber, icon: <ShieldAlert size={14}/> })),
     ...workOrders.filter(w => w.status !== "completed" && daysUntil(w.dueDate) < 0)
       .map(w => ({ type: "warning" as const, msg: `Overdue: ${w.title}`, sub: `${Math.abs(daysUntil(w.dueDate))}d past due`, icon: <Clock size={14}/> })),
     ...inventory.filter(i => i.status === "out_of_stock")
@@ -103,9 +103,9 @@ export function Dashboard() {
       time: w.createdAt, icon: <ClipboardList size={13}/>, color: "text-blue-500 bg-blue-50",
       text: w.title, sub: `Work Order · ${w.woNumber}`,
     })),
-    ...incidents.slice().sort((a,b)=>new Date(b.reportedAt).getTime()-new Date(a.reportedAt).getTime()).slice(0,3).map(i=>({
+    ...serviceRequests.slice().sort((a,b)=>new Date(b.reportedAt).getTime()-new Date(a.reportedAt).getTime()).slice(0,3).map(i=>({
       time: i.reportedAt, icon: <AlertTriangle size={13}/>, color: "text-amber-500 bg-amber-50",
-      text: i.title, sub: `Incident · ${i.incidentNumber}`,
+      text: i.title, sub: `Service Request · ${i.requestNumber}`,
     })),
     ...assets.slice().sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()).slice(0,2).map(a=>({
       time: a.createdAt, icon: <Box size={13}/>, color: "text-emerald-500 bg-emerald-50",
@@ -160,10 +160,10 @@ export function Dashboard() {
           sub={`${criticalWOs} critical · ${overdueWOs} overdue`}
           trend={{ value: criticalWOs > 0 ? `${criticalWOs} urgent` : "On track", up: criticalWOs > 0 ? false : null }}
         />
-        <KpiCard label="Active Incidents" value={activeIncidents}
+        <KpiCard label="Service Requests" value={activeServiceRequests}
           icon="⚠️" iconBg="bg-red-50"
           sub="Reported or investigating"
-          trend={{ value: activeIncidents > 0 ? "Needs attention" : "All clear", up: activeIncidents > 0 ? false : null }}
+          trend={{ value: activeServiceRequests > 0 ? "Needs attention" : "All clear", up: activeServiceRequests > 0 ? false : null }}
         />
         <KpiCard label="Low Stock Items"  value={lowStockItems}
           icon="📦" iconBg="bg-violet-50"

@@ -24,7 +24,7 @@ const NAV_GROUPS = [
       { page: "dashboard"   as NavPage, icon: <LayoutDashboard size={17} />, label: "Dashboard" },
       { page: "my-tasks"    as NavPage, icon: <Briefcase       size={17} />, label: "My Tasks" },
       { page: "work-orders" as NavPage, icon: <ClipboardList   size={17} />, label: "Work Orders",    badge: "open" },
-      { page: "incidents"   as NavPage, icon: <AlertTriangle   size={17} />, label: "Incidents",      badge: "new"  },
+      { page: "service-requests" as NavPage, icon: <AlertTriangle   size={17} />, label: "Service Requests", badge: "new"  },
     ],
   },
   {
@@ -63,15 +63,15 @@ const NAV_GROUPS = [
 
 export function Sidebar({ activePage, onNavigate, collapsed, onToggle }: SidebarProps) {
   const { state } = useApp();
-  const { currentUser, workOrders, incidents, inventory } = state;
+  const { currentUser, workOrders, serviceRequests, inventory } = state;
 
   const openWOs  = workOrders.filter(w => w.status === "open" || w.status === "assigned").length;
-  const newInc   = incidents.filter(i => i.status === "reported").length;
+  const newSR   = serviceRequests.filter(i => i.status === "reported").length;
   const lowStock = inventory.filter(i => i.status !== "in_stock").length;
 
   function getBadgeCount(badge?: string): number {
     if (badge === "open") return openWOs;
-    if (badge === "new")  return newInc;
+    if (badge === "new")  return newSR;
     if (badge === "low")  return lowStock;
     return 0;
   }

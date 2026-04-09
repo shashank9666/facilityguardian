@@ -108,7 +108,7 @@ export function MyTasks() {
   const QUICK_ACTIONS = [
     { label: "Update DG Log",        color: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-100",   icon: <Zap size={14}/>, action: () => navigateTo("meter-readings") },
     { label: "Submit Washroom HK",   color: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-100", icon: <ClipboardCheck size={14}/>, action: () => navigateTo("checklists") },
-    { label: "Report Faulty Asset",  color: "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-100", icon: <AlertTriangle size={14}/>, action: () => navigateTo("incidents") },
+    { label: "Report Faulty Asset",  color: "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-100", icon: <AlertTriangle size={14}/>, action: () => navigateTo("service-requests") },
   ];
 
   return (
