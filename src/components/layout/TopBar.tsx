@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, RefreshCw, LogOut, AlertTriangle, Package, Clock, X } from "lucide-react";
+import { Bell, Search, RefreshCw, LogOut, AlertTriangle, Package, Clock, X, QrCode } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import type { NavPage } from "@/types";
 import { cn, daysUntil, timeAgo } from "@/lib/utils";
@@ -16,9 +16,10 @@ interface TopBarProps {
   onRefresh: () => void;
   onLogout: () => void;
   navigateTo: (p: NavPage) => void;
+  onOpenScanner: () => void;
 }
 
-export function TopBar({ activePage, search, onSearch, onRefresh, onLogout, navigateTo }: TopBarProps) {
+export function TopBar({ activePage, search, onSearch, onRefresh, onLogout, navigateTo, onOpenScanner }: TopBarProps) {
   const { state, markNotificationRead } = useApp();
   const meta = titleMap[activePage] || { title: activePage, subtitle: "" };
   const [dateStr, setDateStr] = useState("");
@@ -80,13 +81,22 @@ export function TopBar({ activePage, search, onSearch, onRefresh, onLogout, navi
       </div>
 
       {/* Refresh */}
-      <button
-        onClick={onRefresh}
-        className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors"
-        title="Refresh data"
-      >
-        <RefreshCw size={15}/>
-      </button>
+      <div className="flex items-center gap-1.5 border-r border-slate-100 pr-4">
+        <button
+          onClick={onOpenScanner}
+          className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
+          title="Scan QR Code"
+        >
+          <QrCode size={15}/>
+        </button>
+        <button
+          onClick={onRefresh}
+          className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+          title="Refresh data"
+        >
+          <RefreshCw size={15}/>
+        </button>
+      </div>
 
       {/* Notifications */}
       <div className="relative" ref={notifRef}>

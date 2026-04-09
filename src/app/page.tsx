@@ -25,10 +25,11 @@ import { MeterReadings } from "./meter-readings/MeterReadings";
 import { AMC }         from "./amc/AMC";
 import { Documents }   from "./documents/Documents";
 import { Notifications } from "./notifications/Notifications";
+import { QRScannerModal } from "@/components/modals/QRScannerModal";
 
 
 import { NavPage, Role } from "@/types";
-import { Building2, X, Zap, Menu, RefreshCw, LogOut } from "lucide-react";
+import { Building2, X, Zap, Menu, RefreshCw, LogOut, QrCode } from "lucide-react";
 import { useRole } from "@/lib/rbac";
 import { NotFound, Unauthorized } from "@/components/layout/ErrorPages";
 
@@ -76,6 +77,7 @@ function FMNexusApp() {
   const [search, setSearch]         = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [mounted, setMounted]       = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -84,6 +86,32 @@ function FMNexusApp() {
   const handleRefresh  = useCallback(() => {
     refreshAll();
   }, [refreshAll]);
+
+  const handleScanSuccess = useCallback((decodedText: string) => {
+    setScannerOpen(false);
+    try {
+      // Check if it's an internal link
+      if (decodedText.includes(window.location.origin)) {
+        const url = new URL(decodedText);
+        const m = url.searchParams.get("m") as NavPage;
+        const tpl = url.searchParams.get("tpl");
+        
+        // Update URL first so modules can read deep-links
+        window.history.pushState({}, "", url.pathname + url.search);
+        
+        if (m) {
+          navigateTo(m);
+        } else {
+          // Fallback or generic handling
+        }
+      } else {
+        // External link? Ask user or toast
+        window.open(decodedText, "_blank");
+      }
+    } catch (e) {
+      console.error("Invalid QR code content", decodedText);
+    }
+  }, [navigateTo]);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
@@ -157,6 +185,7 @@ function FMNexusApp() {
           onNavigate={handleNavigate} 
           collapsed={sidebarCollapsed} 
           onToggle={toggleSidebar} 
+          onOpenScanner={() => setScannerOpen(true)}
         />
       </div>
 
@@ -179,6 +208,7 @@ function FMNexusApp() {
                onNavigate={(p) => { handleNavigate(p); setMobileOpen(false); }} 
                collapsed={false} 
                onToggle={() => setMobileOpen(false)} 
+               onOpenScanner={() => { setScannerOpen(true); setMobileOpen(false); }}
              />
            </div>
         </div>
@@ -204,6 +234,7 @@ function FMNexusApp() {
                onRefresh={handleRefresh}
                onLogout={logout}
                navigateTo={handleNavigate}
+               onOpenScanner={() => setScannerOpen(true)}
              />
            </div>
 
@@ -214,6 +245,9 @@ function FMNexusApp() {
 
            {/* Always visible actions (Refresh, Logout) */}
            <div className="lg:hidden flex items-center gap-1">
+             <button onClick={() => setScannerOpen(true)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
+               <QrCode size={18} />
+             </button>
              <button onClick={handleRefresh} className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
                <RefreshCw size={18} />
              </button>
@@ -231,6 +265,12 @@ function FMNexusApp() {
       </div>
 
       <ToastContainer />
+      
+      <QRScannerModal 
+        open={scannerOpen} 
+        onClose={() => setScannerOpen(false)} 
+        onScanSuccess={handleScanSuccess}
+      />
     </div>
   );
 }

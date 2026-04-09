@@ -322,7 +322,7 @@ function FieldInput({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export function Checklists() {
-  const { state, submitChecklist, toast, fetchChecklists } = useApp();
+  const { state, submitChecklist, toast, fetchChecklists, activePage } = useApp();
 
   // QR Modal state
   const [qrOpen, setQrOpen]     = useState(false);
@@ -331,14 +331,18 @@ export function Checklists() {
 
   useEffect(() => {
     fetchChecklists();
-    // Deep-linking: check for 'tpl' in URL
+  }, [fetchChecklists]);
+
+  // Handle URL parameter changes for deep-linking
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tplId  = params.get("tpl");
-    if (tplId) {
+    if (tplId && (!activeTemplate || activeTemplate.id !== tplId)) {
       const tpl = TEMPLATES.find(t => t.id === tplId);
       if (tpl) openTemplate(tpl);
     }
-  }, [fetchChecklists]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [window.location.search, activePage]);
 
   const [catFilter, setCatFilter] = useState<"ALL" | ChecklistCategory>("ALL");
   const [activeTemplate, setActiveTemplate] = useState<ChecklistTemplate | null>(null);

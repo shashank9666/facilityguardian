@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Box, ClipboardList, Wrench, Users2,
   LayoutTemplate, AlertTriangle, Package, BarChart3, Settings,
   Zap, Briefcase, ListChecks, Activity, FileText, FolderOpen,
-  ChevronLeft, ChevronRight, Menu
+  ChevronLeft, ChevronRight, Menu, QrCode
 } from "lucide-react";
 
 interface SidebarProps {
@@ -15,6 +15,7 @@ interface SidebarProps {
   onNavigate: (page: NavPage) => void;
   collapsed: boolean;
   onToggle: () => void;
+  onOpenScanner?: () => void;
 }
 
 const NAV_GROUPS = [
@@ -32,6 +33,7 @@ const NAV_GROUPS = [
     items: [
       { page: "checklists"  as NavPage, icon: <ListChecks      size={17} />, label: "Checklists" },
       { page: "meter-readings" as NavPage, icon: <Activity     size={17} />, label: "Meter Readings" },
+      { action: "scan", icon: <QrCode size={17} />, label: "QR Scanner" },
     ],
   },
   {
@@ -61,7 +63,7 @@ const NAV_GROUPS = [
 ];
 
 
-export function Sidebar({ activePage, onNavigate, collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ activePage, onNavigate, collapsed, onToggle, onOpenScanner }: SidebarProps) {
   const { state } = useApp();
   const { currentUser, workOrders, serviceRequests, inventory } = state;
 
@@ -113,12 +115,19 @@ export function Sidebar({ activePage, onNavigate, collapsed, onToggle }: Sidebar
             )}
             <div className="space-y-1">
               {group.items.map(item => {
-                const count = getBadgeCount(item.badge);
-                const isActive = activePage === item.page;
+                const badge = "badge" in item ? item.badge as string : undefined;
+                const count = getBadgeCount(badge);
+                const isActive = "page" in item && activePage === item.page;
                 return (
                   <button
-                    key={item.page}
-                    onClick={() => onNavigate(item.page)}
+                    key={item.label}
+                    onClick={() => {
+                      if ("action" in item && item.action === "scan") {
+                        onOpenScanner?.();
+                      } else if ("page" in item) {
+                        onNavigate(item.page as NavPage);
+                      }
+                    }}
                     title={collapsed ? item.label : ""}
                     className={cn(
                       "w-full flex items-center rounded-xl transition-all duration-200 group relative",
@@ -137,7 +146,7 @@ export function Sidebar({ activePage, onNavigate, collapsed, onToggle }: Sidebar
                         "text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center justify-center min-w-[18px]",
                         collapsed ? "absolute -top-1 -right-1" : "",
                         isActive ? "bg-white/20 text-white" : 
-                        item.badge === "low" ? "bg-amber-500/20 text-amber-500" : "bg-red-500/20 text-red-500"
+                        badge === "low" ? "bg-amber-500/20 text-amber-500" : "bg-red-500/20 text-red-500"
                       )}>
                         {count}
                       </span>
