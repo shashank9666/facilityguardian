@@ -29,6 +29,7 @@ export function WorkOrders({ search }: { search: string }) {
   const [addOpen, setAddOpen] = useState(false);
   const [detailWO, setDetailWO] = useState<WorkOrder | null>(null);
   const [form, setForm] = useState<Partial<WorkOrder & {assetName: string}>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchWorkOrders({
@@ -44,6 +45,7 @@ export function WorkOrders({ search }: { search: string }) {
 
   async function handleAdd() {
     if (!form.title?.trim()) return;
+    setSaving(true);
     try {
       await addWorkOrder({
         title: sanitize(form.title!), description: sanitize(form.description || ""),
@@ -55,12 +57,17 @@ export function WorkOrders({ search }: { search: string }) {
       });
       toast("Work order created", "success");
       setAddOpen(false); setForm({});
-    } catch (err) { toast((err as Error).message ?? "Failed to create", "error"); }
+    } catch (err) { 
+      toast((err as Error).message ?? "Failed to create", "error"); 
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function updateStatus(wo: WorkOrder, status: WOStatus) {
     try {
-      await updateWorkOrder(wo.id, { status });
+      const updated = await updateWorkOrder(wo.id, { status }) as unknown as WorkOrder;
+      setDetailWO(updated ?? { ...wo, status });
       toast(`Work order ${status.replace("_"," ")}`, "info");
     } catch (err) { toast((err as Error).message ?? "Failed to update", "error"); }
   }
@@ -173,7 +180,7 @@ export function WorkOrders({ search }: { search: string }) {
 
       {/* Add WO Modal */}
       <Modal open={addOpen} onClose={()=>{setAddOpen(false);setForm({});}} title="Create Work Order" size="lg"
-        footer={<><Button variant="secondary" onClick={()=>setAddOpen(false)}>Cancel</Button><Button variant="primary" onClick={handleAdd}>Create</Button></>}>
+        footer={<><Button variant="secondary" onClick={()=>setAddOpen(false)}>Cancel</Button><Button variant="primary" loading={saving} onClick={handleAdd}>Create</Button></>}>
         <div className="space-y-3">
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Title *</label>
@@ -209,6 +216,7 @@ export function WorkOrders({ search }: { search: string }) {
             <div>
               <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Due Date</label>
               <input type="date" value={form.dueDate||""} onChange={e=>setForm(p=>({...p,dueDate:e.target.value}))}
+                min={new Date().toISOString().split("T")[0]}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"/>
             </div>
             <div>
@@ -238,72 +246,58 @@ export function WorkOrders({ search }: { search: string }) {
         <Modal open={!!detailWO} onClose={()=>setDetailWO(null)} title={detailWO.woNumber} size="lg"
           footer={
           <div className="flex gap-2 w-full items-center">
-              {canCreate && detailWO.status !== "completed" && detailWO.status !== "cancelled" && (
-                <div className="flex gap-2 flex-wrap">
-                  {/* Transition to Assigned if unassigned */}
-                  {!detailWO.assignedTo && detailWO.status === "open" && (
-                    <div className="flex items-center gap-2">
-                       <select
-                        onChange={(e) => {
+              {(() => {
+                const isAssigned = detailWO.assignedTo === state.currentUser?.name;
+                const isAdminOrManager = state.currentUser?.role === "admin" || state.currentUser?.role === "manager";
+                
+                return (
+                  <div className="flex gap-2 flex-wrap items-center">
+                    {/* Admin Assignment Logic */}
+                    {isAdminOrManager && !detailWO.assignedTo && detailWO.status === "open" && (
+                      <select
+                        onChange={async (e) => {
                           if (e.target.value) {
-                            updateWorkOrder(detailWO.id, { assignedTo: e.target.value, status: "assigned" });
-                            setDetailWO(null);
+                            const updated = await updateWorkOrder(detailWO.id, { assignedTo: e.target.value, status: "assigned" }) as unknown as WorkOrder;
+                            setDetailWO(updated ?? { ...detailWO, assignedTo: e.target.value, status: "assigned" });
                           }
                         }}
-                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white outline-none"
+                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-blue-400"
                       >
                         <option value="">Assign To...</option>
                         {state.technicians.map(u => (
                           <option key={u.id} value={u.name}>{u.name}</option>
                         ))}
                       </select>
-                    </div>
-                  )}
+                    )}
 
-                  {/* open → in_progress */}
-                  {(detailWO.status === "open" || detailWO.status === "assigned") && (
-                    <Button variant="primary" size="sm"
-                      onClick={() => {
-                        if (!detailWO.assignedTo) {
-                          toast("Please assign a technician first", "warning");
-                          return;
-                        }
-                        updateStatus(detailWO, "in_progress");
-                        setDetailWO(null);
-                      }}>
-                      ▶ Start Work
-                    </Button>
-                  )}
-                  {/* on_hold → in_progress */}
-                  {detailWO.status === "on_hold" && (
-                    <Button variant="primary" size="sm"
-                      onClick={() => { updateStatus(detailWO, "in_progress"); setDetailWO(null); }}>
-                      ▶ Resume
-                    </Button>
-                  )}
-                  {/* in_progress → completed */}
-                  {detailWO.status === "in_progress" && (
-                    <Button variant="success" size="sm"
-                      onClick={() => { updateStatus(detailWO, "completed"); setDetailWO(null); }}>
-                      ✓ Mark Complete
-                    </Button>
-                  )}
-                  {/* any non-hold state → on_hold */}
-                  {detailWO.status !== "on_hold" && (
-                    <Button variant="ghost" size="sm"
-                      onClick={() => { updateStatus(detailWO, "on_hold"); setDetailWO(null); }}>
-                      ⏸ Hold
-                    </Button>
-                  )}
-                  {/* cancel */}
-                  {canDeleteWO && (
-                    <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 border-red-200"
-                      onClick={() => { updateStatus(detailWO, "cancelled"); setDetailWO(null); }}>
-                      ✕ Cancel
-                    </Button>
-                  )}
-                </div>
-              )}
+                    {/* Technician Execution Actions (Only for assignee) */}
+                    {isAssigned && (
+                      <div className="flex gap-2">
+                        {(detailWO.status === "open" || detailWO.status === "assigned") && (
+                          <Button variant="primary" size="sm" onClick={() => updateStatus(detailWO, "in_progress")}>▶ Start Work</Button>
+                        )}
+                        {detailWO.status === "on_hold" && (
+                          <Button variant="primary" size="sm" onClick={() => updateStatus(detailWO, "in_progress")}>▶ Resume</Button>
+                        )}
+                        {detailWO.status === "in_progress" && (
+                          <Button variant="success" size="sm" onClick={() => updateStatus(detailWO, "completed")}>✓ Mark Complete</Button>
+                        )}
+                        {detailWO.status !== "on_hold" && detailWO.status !== "completed" && detailWO.status !== "cancelled" && (
+                          <Button variant="ghost" size="sm" onClick={() => updateStatus(detailWO, "on_hold")}>⏸ Hold</Button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Admin Cancellation */}
+                    {canDeleteWO && detailWO.status !== "completed" && detailWO.status !== "cancelled" && (
+                      <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 border-red-200"
+                        onClick={() => { updateStatus(detailWO, "cancelled"); setDetailWO(null); }}>
+                        ✕ Cancel
+                      </Button>
+                    )}
+                  </div>
+                );
+              })()}
               <Button variant="secondary" size="sm" className="ml-auto" onClick={() => setDetailWO(null)}>Close</Button>
             </div>
 

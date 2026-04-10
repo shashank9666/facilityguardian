@@ -348,7 +348,10 @@ export function Documents({ search }: { search: string }) {
           </div>
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Expiry Date</label>
-            <input type="date" value={form.expiryDate?.slice(0,10)||""} onChange={e=>setForm(p=>({...p,expiryDate:e.target.value}))}
+            <input type="date" 
+              min={new Date().toISOString().split('T')[0]}
+              value={form.expiryDate?.slice(0,10)||""} 
+              onChange={e=>setForm(p=>({...p,expiryDate:e.target.value}))}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400"/>
           </div>
           <div className="col-span-2">

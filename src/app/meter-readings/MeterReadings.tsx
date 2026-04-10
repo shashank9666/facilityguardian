@@ -91,7 +91,7 @@ export function MeterReadings() {
       previousReading: String(r.previousReading),
       currentReading:  String(r.currentReading),
       notes:           r.notes,
-      readingDate:     r.readingDate,
+      readingDate:     r.readingDate.slice(0, 10),
     });
     setEditing(r);
     setModalOpen(true);

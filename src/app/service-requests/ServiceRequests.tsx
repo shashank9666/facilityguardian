@@ -19,7 +19,7 @@ const STATUS_COLOR: Record<ServiceRequestStatus, string> = {
 };
 
 export function ServiceRequests({ search }: { search: string }) {
-  const { state, addServiceRequest, updateServiceRequest, toast, fetchServiceRequests } = useApp();
+  const { state, addServiceRequest, updateServiceRequest, toast, fetchServiceRequests, fetchTechnicians } = useApp();
 
   const { canCreate, canDeleteInc } = useRole();
   const [filterStatus, setFilterStatus] = useState("all");
@@ -34,7 +34,8 @@ export function ServiceRequests({ search }: { search: string }) {
       status: filterStatus === "all" ? "" : filterStatus,
       severity: filterSeverity === "all" ? "" : filterSeverity,
     });
-  }, [fetchServiceRequests, search, filterStatus, filterSeverity]);
+    fetchTechnicians?.(); // Ensure technicians list is available for assignment
+  }, [fetchServiceRequests, fetchTechnicians, search, filterStatus, filterSeverity]);
 
   const filtered = state.serviceRequests;
 
@@ -213,11 +214,48 @@ export function ServiceRequests({ search }: { search: string }) {
       {detailSR && (
         <Modal open={!!detailSR} onClose={()=>setDetailSR(null)} title={detailSR.requestNumber} size="lg"
           footer={
-            <div className="flex gap-2 w-full">
-              {canCreate && detailSR.status==="reported" && <Button variant="warning" size="sm" onClick={()=>updateStatus(detailSR,"investigating")}>Investigate</Button>}
-              {canCreate && detailSR.status==="investigating" && <Button variant="success" size="sm" onClick={()=>updateStatus(detailSR,"resolved")}>Resolve</Button>}
-              {canCreate && detailSR.status==="resolved" && <Button variant="ghost" size="sm" onClick={()=>updateStatus(detailSR,"closed")}>Close</Button>}
-              <Button variant="secondary" size="sm" className="ml-auto" onClick={()=>setDetailSR(null)}>Close</Button>
+            <div className="flex gap-2 w-full items-center">
+              {(() => {
+                const isAssigned = detailSR.assignedTo === state.currentUser?.name;
+                const isAdminOrManager = state.currentUser?.role === "admin" || state.currentUser?.role === "manager";
+                
+                return (
+                  <div className="flex gap-2 flex-grow items-center">
+                    {/* Role-based Assignment Dropdown (Admin/Manager only) */}
+                    {isAdminOrManager && (
+                      <select
+                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white outline-none focus:border-blue-400"
+                        value={detailSR.assignedTo || ""}
+                        onChange={async (e) => {
+                          if (e.target.value) {
+                            const updated = await updateServiceRequest(detailSR.id, { assignedTo: e.target.value }) as unknown as ServiceRequest;
+                            setDetailSR(updated ?? { ...detailSR, assignedTo: e.target.value });
+                          }
+                        }}
+                      >
+                        <option value="">Assign To...</option>
+                        {state.technicians.map(u => (
+                          <option key={u.id} value={u.name}>{u.name}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {/* Investigation Action (Only for Assignee) */}
+                    {isAssigned && detailSR.status === "reported" && (
+                      <Button variant="warning" size="sm" onClick={() => updateStatus(detailSR, "investigating")}>Investigate</Button>
+                    )}
+                    
+                    {/* Resolution/Closure Actions (Only for Assignee or Manager) */}
+                    {(isAssigned || isAdminOrManager) && (
+                      <>
+                        {detailSR.status === "investigating" && <Button variant="success" size="sm" onClick={() => updateStatus(detailSR, "resolved")}>Resolve</Button>}
+                        {detailSR.status === "resolved" && <Button variant="ghost" size="sm" onClick={() => updateStatus(detailSR, "closed")}>Close</Button>}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+              <Button variant="secondary" size="sm" className="ml-auto" onClick={() => setDetailSR(null)}>Close</Button>
             </div>
           }>
           <div className="space-y-4">
