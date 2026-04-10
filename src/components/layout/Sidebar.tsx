@@ -78,6 +78,28 @@ export function Sidebar({ activePage, onNavigate, collapsed, onToggle, onOpenSca
     return 0;
   }
 
+
+  // Filter navigation groups and items based on role
+  const filteredGroups = NAV_GROUPS.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      const page = "page" in item ? item.page as NavPage : null;
+      if (!page) return true; // Keep actions like "scan"
+
+      if (currentUser.role === "technician") {
+        const hidden = ["amc", "vendors", "reports"];
+        if (hidden.includes(page)) return false;
+      }
+
+      if (currentUser.role === "viewer") {
+        const hidden = ["my-tasks", "checklists", "meter-readings", "maintenance", "amc", "vendors", "reports"];
+        if (hidden.includes(page)) return false;
+      }
+
+      return true;
+    })
+  })).filter(group => group.items.length > 0);
+
   return (
     <aside className={cn(
       "bg-[#0f172a] flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out border-r border-slate-800 relative",
@@ -106,7 +128,7 @@ export function Sidebar({ activePage, onNavigate, collapsed, onToggle, onOpenSca
 
       {/* Nav Groups */}
       <nav className="flex-1 px-3 py-6 space-y-7 overflow-y-auto no-scrollbar">
-        {NAV_GROUPS.map(group => (
+        {filteredGroups.map(group => (
           <div key={group.label} className="space-y-2">
             {!collapsed && (
               <div className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-3">

@@ -17,7 +17,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   admin:      ["View All","Create/Edit Assets","Create Work Orders","Manage Vendors","Manage Users","View Reports","System Settings"],
   manager:    ["View All","Create/Edit Assets","Create Work Orders","Manage Vendors","View Reports"],
   technician: ["View Assets","Create Work Orders","Update Work Order Status","View PM Schedules"],
-  viewer:     ["View Assets","View Work Orders","View Reports"],
+  viewer:     ["View Assets","View Work Orders"],
 };
 
 export function Settings() {
